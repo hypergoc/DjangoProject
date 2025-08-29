@@ -22,7 +22,7 @@ from django.conf.urls.static import static # Import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('gallery/', include('gallery.urls', namespace='gallery')),
-
+    path('admin/gemini/chat/', include('gemini.urls')),
 ]
 
 # This is ONLY for development and not for production!
