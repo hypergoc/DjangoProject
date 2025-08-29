@@ -1,0 +1,28 @@
+<!-- gallery/templates/gallery/gallery.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Gallery</title>
+    <style>
+        body { font-family: sans-serif; }
+        .gallery-container { display: flex; flex-wrap: wrap; gap: 15px; }
+        .gallery-item { border: 1px solid #ccc; padding: 5px; }
+        .gallery-item img { max-width: 200px; height: auto; display: block; }
+        .gallery-item p { text-align: center; margin: 5px 0 0; }
+    </style>
+</head>
+<body>
+    <h1>Our Gallery</h1>
+    <div class="gallery-container">
+        {% for image in images %}
+            <div class="gallery-item">
+                <img src="{{ image.path.url }}" alt="Gallery Image {{ image.id }}">
+                <p>Order: {{ image.order }}</p>
+            </div>
+        {% empty %}
+            <p>No images in the gallery yet.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>
