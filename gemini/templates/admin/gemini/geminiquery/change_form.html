@@ -1,0 +1,100 @@
+<!-- templates/admin/gemini/geminiquery/change_form.html -->
+
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+        .custom-render-block { padding: 15px; border: 1px solid #555; background-color: #444; border-radius: 4px; margin-bottom: 20px; }
+        .custom-render-block h2, .custom-render-block h3 { margin-top: 0; color: #ccc; }
+        #ajax-message { margin-left: 20px; font-style: italic; color: #ccc; }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!-- Ovaj dio se prikazuje SAMO na stranici za editiranje -->
+    {% if original %}
+        <div class="custom-render-block">
+            <h2>Pregled Odgovora</h2>
+            <h3 style="color: #ddd;">Pitanje:</h3>
+            <p style="font-size: 1.1em; margin-left: 10px; color: #fff;">{{ original.question }}</p>
+
+            <h3 style="color: #ddd;">Geminijev Odgovor (Formatirano):</h3>
+            <pre><code class="language-markup">{{ original.response }}</code></pre>
+
+            <div style="margin-top: 20px;">
+                <button id="fetch-btn" class="button">Dohvati Postojeći Sadržaj</button>
+                <button id="push-btn" class="button" style="background-color: #c82333; border-color: #bd2130;">Primijeni Promjene na Fajlove</button>
+                <span id="ajax-message"></span>
+            </div>
+        </div>
+    {% endif %}
+
+    <h1>{% if original %}Originalni Zapis (Moguće Editirati){% else %}Dodaj Novi Zapis{% endif %}</h1>
+    {{ block.super }}
+
+    <div id="existing-content-wrapper" class="custom-render-block" style="margin-top: 20px; {% if not original.existing_content %}display: none;{% endif %}">
+        <h2>Zatečeni Sadržaj Fajlova (Pročitano s Diska)</h2>
+        <pre><code class="language-markup" id="existing-pre">{{ original.existing_content }}</code></pre>
+    </div>
+
+    <div id="report-wrapper" class="custom-render-block" style="margin-top: 20px; display: none;">
+        <h2>Izvještaj o Primjeni:</h2>
+        <pre id="report-pre"></pre>
+    </div>
+
+    <!-- === KLJUČNA PROMJENA: CIJELI SCRIPT JE UNUTAR IF-a === -->
+    {% if original %}
+    <script>
+    (function($) {
+        $(document).ready(function() {
+            const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+            const objectId = '{{ original.pk }}'; // Ovdje original.pk sigurno postoji
+            const ajaxMessageSpan = $('#ajax-message');
+
+            $('#fetch-btn').on('click', function(e) {
+                e.preventDefault();
+                ajaxMessageSpan.text('Dohvaćam...');
+                const ajaxUrl = "{% url 'admin:gemini_query_fetch_content' object_id=23 %}";
+                $.post(ajaxUrl, { 'csrfmiddlewaretoken': csrfToken })
+                    .done(function(response) {
+                        if (response.status === 'success') {
+                            $('#existing-pre').text(response.content);
+                            $('#existing-wrapper').show();
+                            Prism.highlightAll();
+                            ajaxMessageSpan.text('Uspješno dohvaćeno!');
+                        } else { ajaxMessageSpan.text('Greška: ' + response.message); }
+                    })
+                    .fail(function() { ajaxMessageSpan.text('Server greška.'); });
+            });
+
+            $('#push-btn').on('click', function(e) {
+                e.preventDefault();
+                if (confirm('Jeste li SIGURNI da želite PREPISATI fajlove na disku? Ova akcija je NEPOVRATNA.')) {
+                    ajaxMessageSpan.text('Primjenjujem promjene...');
+                    const ajaxUrl = "{% url 'admin:gemini_query_push_content' object_id=23 %}";
+                    $.post(ajaxUrl, { 'csrfmiddlewaretoken': csrfToken })
+                        .done(function(response) {
+                            if (response.status === 'success') {
+                                $('#report-pre').text(response.report);
+                                $('#report-wrapper').show();
+                                if (!response.report.includes("GREŠKA")) {
+                                     // Ovdje ćemo dinamički promijeniti status
+                                    const statusDisplay = $('.field-is_integrated div.readonly');
+                                    if(statusDisplay.length) {
+                                        statusDisplay.text('Da');
+                                    }
+                                }
+                                ajaxMessageSpan.text('Proces završen.');
+                            } else { ajaxMessageSpan.text('Greška: ' + response.message); }
+                        })
+                        .fail(function() { ajaxMessageSpan.text('Server greška.'); });
+                }
+            });
+        });
+    })(django.jQuery);
+    </script>
+    {% endif %}
+    <!-- ======================================================= -->
+{% endblock %}
