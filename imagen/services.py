@@ -10,6 +10,7 @@ from .models import ContentGeneration, Path, GeneratedImage
 from dotenv import load_dotenv
 import logging
 import json
+from settings.models import Setting as SettingsModel
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -24,8 +25,20 @@ if not apiKey:
 
 # Tvoja originalna get_gemini_text_response funkcija ostaje ista
 def get_gemini_text_response(prompt: str):
-    # ... (tvoja postojeća logika)
-    pass
+    """
+    Generira tekstualni odgovor koristeći Gemini.
+    """
+    logger.info("Pokrećem 'get_gemini_text_response'...")
+
+    genai.configure(api_key=apiKey)
+    model_name = os.environ.get("GEMINI_MODEL", "gemini-pro")
+
+    additional_prompt = SettingsModel.objects.filter(path="imagen/contentgeneration/gemini_rule").first().value
+    if additional_prompt:
+        prompt = f"{prompt} ({additional_prompt})"
+
+    model = genai.GenerativeModel(model_name=model_name)
+    response = model.generate_content(prompt)
 
 
 # Tvoja generate_imagen_image funkcija, sada s ispravnim loggerom

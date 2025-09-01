@@ -1,0 +1,9 @@
+{% for image in images %}
+    <div class="thumbnail-wrapper">
+        <a href="{{ image.image_file.url }}" data-lightbox="image-set" data-title="Image ID: {{ image.id }}">
+            <img src="{{ image.image_file.url }}" alt="Image {{ image.id }}" class="thumbnail">
+        </a>
+    </div>
+{% empty %}
+    <p>No images generated for this prompt yet.</p>
+{% endfor %}
