@@ -98,7 +98,7 @@ class GeminiQueryAdmin(admin.ModelAdmin):
                     query_obj.save()
                     return JsonResponse({'status': 'success', 'content': existing_file_content})
                 else:
-                    return JsonResponse({'status': 'warning', 'message': 'Nema odgovora za primjenu.'})
+                    return JsonResponse({'status': 'warning', 'message': 'Nema odgovora za primjenu fetch content viow.'})
             except Exception as e:
                 return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
         return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
@@ -114,7 +114,7 @@ class GeminiQueryAdmin(admin.ModelAdmin):
                         query_obj.save()
                     return JsonResponse({'status': 'success', 'report': report})
                 else:
-                    return JsonResponse({'status': 'warning', 'message': 'Nema odgovora za primjenu.'})
+                    return JsonResponse({'status': 'warning', 'message': 'Nema odgovora za primjenu push content view.'})
             except Exception as e:
                 return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
         return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
