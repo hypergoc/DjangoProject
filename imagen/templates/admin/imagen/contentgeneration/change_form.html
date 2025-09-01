@@ -62,19 +62,7 @@
         <h3>Image Gallery</h3>
         <div id="image-gallery" class="image-gallery-container">
             <div id="image-gallery-grid" class="image-gallery-grid">
-                {% if original and original.path %}
-                    {% for image in original.path.images.all %}
-                        <div class="thumbnail-wrapper">
-                            <a href="{{ image.image_file.url }}" data-lightbox="image-set" data-title="Image ID: {{ image.id }}">
-                                <img src="{{ image.image_file.url }}" alt="Image {{ image.id }}" class="thumbnail">
-                            </a>
-                        </div>
-                    {% empty %}
-                        <p>No images generated for this prompt yet.</p>
-                    {% endfor %}
-                {% else %}
-                     <p>Save the item first to generate images.</p>
-                {% endif %}
+                <p>Save or create the item first to see or generate images.</p>
             </div>
         </div>
     </fieldset>
@@ -86,13 +74,12 @@
 <script>
 (function($) {
     $(document).ready(function() {
-        const pathParts = window.location.pathname.split('/').filter(Boolean);
-        const objectId = pathParts[pathParts.length - 2];
-        const isAddForm = isNaN(parseInt(objectId));
-        const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
-        const modelName = '{{ opts.model_name }}';
+        // Ispravan način za dohvaćanje ID-a. Ako ne postoji u contextu (na add stranici), bit će null.
+        let objectId = {% if object_id %}'{{ object_id }}'{% else %}null{% endif %};
+        let isAddForm = (objectId === null);
 
-        if (isAddForm) return;
+        const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+        const geminiUrl = "{% url 'imagen:ajax_gemini_request' %}";
 
         function showStatus(element, message, isError) {
             let statusDiv = element.siblings('.ajax-status');
@@ -109,77 +96,67 @@
 
         $('#gemini-request-btn').on('click', function(e) {
             e.preventDefault();
-            const url = `/admin/imagen/${modelName}/${objectId}/gemini-request/`;
+            const geminiText = $('#id_gemini_request').val();
+            if (!geminiText.trim()) {
+                alert('Gemini Request polje je prazno.');
+                return;
+            }
 
             $.ajax({
-                url: url,
+                url: geminiUrl,
                 type: 'POST',
-                data: { 'csrfmiddlewaretoken': csrfToken },
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    'gemini_request_text': geminiText,
+                    'object_id': objectId // Šalje null ako je `isAddForm` true
+                }),
+                headers: { 'X-CSRFToken': csrfToken },
                 beforeSend: () => {
                     $(this).prop('disabled', true).text('Slanje...');
                     showStatus($(this), '', false);
                 },
                 success: (data) => {
-                    if (data.success && data.prompt) {
+                    if (data.success) {
                         $('#id_prompt').val(data.prompt);
-                        showStatus($(this), 'Odgovor primljen!', false);
+                        let statusMessage = 'Odgovor primljen i spremljen!';
+                        
+                        // Ako smo bili na 'add' formi, sada imamo ID i moramo ažurirati stanje stranice
+                        if (isAddForm && data.new_object_id) {
+                            objectId = data.new_object_id;
+                            isAddForm = false;
+                            
+                            // Ažuriraj URL u browseru bez reloada
+                            const newUrl = window.location.pathname.replace('/add/', `/${objectId}/change/`);
+                            window.history.pushState({path: newUrl}, '', newUrl);
+                            
+                            // Promijeni naslov stranice da reflektira promjenu
+                            $('h1').text($('h1').text().replace('Add', 'Change'));
+                            
+                            statusMessage = 'Objekt kreiran! Sada možete generirati slike.';
+                        }
+                        showStatus($(this), statusMessage, false);
                     } else {
                         showStatus($(this), 'Greška: ' + (data.error || 'Nepoznata greška.'), true);
                     }
                 },
-                error: (xhr) => showStatus($(this), 'Server greška: ' + xhr.statusText, true),
+                error: (xhr) => showStatus($(this), 'Server greška: ' + (xhr.responseJSON?.error || xhr.statusText), true),
                 complete: () => $(this).prop('disabled', false).text('Pošalji upit')
             });
         });
-
+        
         const promptContainer = $('.form-row.field-prompt .readonly').length ? $('.form-row.field-prompt .readonly') : $('#id_prompt');
         const imagenButton = $('<button type="button" class="button custom-admin-button" id="imagen-request-btn">Generiraj Slike</button>');
         promptContainer.after(imagenButton);
-
+        
         $('#imagen-request-btn').on('click', function(e) {
             e.preventDefault();
-            const pathId = $('#id_path').val();
-
-            if (!pathId) {
-                alert('Please select and save a "Path" object first.');
+            if (isAddForm) {
+                alert('Molimo prvo pošaljite Gemini upit kako bi se objekt kreirao.');
                 return;
             }
-            const url = `/admin/imagen/${modelName}/${objectId}/imagen-request/`;
-
-            $.ajax({
-                url: url,
-                type: 'POST',
-                data: { 'csrfmiddlewaretoken': csrfToken },
-                beforeSend: () => {
-                    $(this).prop('disabled', true).text('Generiranje...');
-                    showStatus($(this), '', false);
-                    $('#image-gallery-grid').html('<p>Generating new images, please wait...</p>');
-                },
-                success: (data) => {
-                    if (data.success && data.images_html) {
-                        $('#image-gallery-grid').html(data.images_html);
-                        lightbox.init();
-                        showStatus($(this), 'Slike generirane!', false);
-                    } else {
-                        const errorMsg = 'Greška: ' + (data.error || 'Generiranje nije uspjelo.');
-                        showStatus($(this), errorMsg, true);
-                        $('#image-gallery-grid').html(`<p style="color:#ba2121;">${errorMsg}</p>`);
-                    }
-                },
-                error: (xhr) => {
-                    const errorMsg = 'Server greška: ' + xhr.statusText;
-                    showStatus($(this), errorMsg, true);
-                    $('#image-gallery-grid').html(`<p style="color:#ba2121;">${errorMsg}</p>`);
-                },
-                complete: () => $(this).prop('disabled', false).text('Generiraj Slike')
-            });
+            alert('Logika za generiranje slika još nije implementirana. Objekt ID je: ' + objectId);
         });
 
-        lightbox.option({
-          'resizeDuration': 200,
-          'wrapAround': true,
-          'fadeDuration': 300
-        });
     });
 })(django.jQuery);
 </script>
