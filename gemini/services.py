@@ -20,7 +20,7 @@ except KeyError:
 
 
 # --- FUNKCIJA #1: POZIVANJE AI-ja ---
-def get_ai_response(prompt: str):
+def get_ai_response(prompt: str, history: str):
     """
     Vraća tuple: (tekst_odgovora, sirovi_response, tokeni, poslani_request)
     """
@@ -28,7 +28,11 @@ def get_ai_response(prompt: str):
         model_name = os.environ.get("GEMINI_MODEL", "gemini-pro")
         model = genai.GenerativeModel(model_name=model_name)
 
-        history_count = SettingsModel.objects.filter(path='gemini/geminiquery/history_count').first().value or 1
+        history_count = SettingsModel.objects.filter(path='gemini/geminiquery/history_count').first().value
+
+        if history > history_count:
+            history_count = history
+
         history_from_db = GeminiQuery.objects.all().order_by('-timestamp')[:history_count]
 
         api_history = []

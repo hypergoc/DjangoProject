@@ -9,7 +9,7 @@ from django.contrib import admin
 from django import forms
 from .models import GeminiQuery
 from . import services
-
+from settings.models import Setting as SettingsModel
 
 @admin.register(GeminiQuery)
 class GeminiQueryAdmin(admin.ModelAdmin):
@@ -40,6 +40,7 @@ class GeminiQueryAdmin(admin.ModelAdmin):
         if '_run_ai_query' in request.POST:
             question = request.POST.get('ai_question', '').strip()
             selected_folder = request.POST.get('folder_to_read', '').strip()
+            historyCount = request.POST.get('history_value_setting', 1).strip()
 
             if question:
                 full_prompt = question
@@ -59,6 +60,8 @@ class GeminiQueryAdmin(admin.ModelAdmin):
                     message += f" Potrošeno tokena: {tokens}"
                 self.message_user(request, message)
 
+        extra_context['history_count'] = history_count = SettingsModel.objects.filter(path='gemini/geminiquery/history_count').first().value or 1
+
         project_root = settings.BASE_DIR
         excluded_folders = {'.git', '.idea', 'venv', '__pycache__', '.venv', 'media'}
         project_folders = []
@@ -68,6 +71,7 @@ class GeminiQueryAdmin(admin.ModelAdmin):
                                os.path.isdir(os.path.join(project_root, item)) and item not in excluded_folders]
         except Exception as e:
             print(f"Greška pri čitanju foldera: {e}")
+
         extra_context['project_folders'] = sorted(project_folders)
 
         extra_context['media'] = self.media + forms.Media(
