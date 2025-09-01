@@ -21,9 +21,13 @@ from django.conf.urls.static import static # Import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('gallery/', include('gallery.urls', namespace='gallery')),
-    path('admin/gemini/chat/', include('gemini.urls')),
+    path('gallery/', include('gallery.urls')),
+    path('imagen/', include('imagen.urls')),
+    # path('gemini/', include('gemini.urls')),
 ]
+
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # This is ONLY for development and not for production!
 if settings.DEBUG:

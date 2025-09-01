@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'gallery',
     'gemini',
+    "imagen",
 ]
 
 MIDDLEWARE = [
@@ -128,3 +129,10 @@ MEDIA_URL = '/media/'
 
 # Absolute path to the directory where media files will be stored
 MEDIA_ROOT = BASE_DIR / 'media'
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
