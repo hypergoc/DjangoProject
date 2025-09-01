@@ -7,6 +7,7 @@ from django.conf import settings
 import google.generativeai as genai
 from .models import GeminiQuery
 from dotenv import load_dotenv
+from settings.models import Setting as SettingsModel
 
 # --- KONFIGURACIJA ---
 load_dotenv()
@@ -27,12 +28,20 @@ def get_ai_response(prompt: str):
         model_name = os.environ.get("GEMINI_MODEL", "gemini-pro")
         model = genai.GenerativeModel(model_name=model_name)
 
-        history_from_db = GeminiQuery.objects.all().order_by('-timestamp')[:10]
+        history_count = SettingsModel.objects.filter(path='gemini/geminiquery/history_count').first().value or 1
+        history_from_db = GeminiQuery.objects.all().order_by('-timestamp')[:history_count]
 
         api_history = []
+
+        prompt_rule = SettingsModel.objects.filter(path='gemini/geminiquery/rules_prompt').first().value
+
+        if prompt_rule:
+            api_history.append(prompt_rule)
+
         for entry in reversed(history_from_db):
             api_history.append({"role": "user", "parts": [entry.question]})
             api_history.append({"role": "model", "parts": [entry.response]})
+
 
         full_request_payload = {
             "model_used": model_name, "history_len": len(api_history),
