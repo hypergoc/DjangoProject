@@ -1,0 +1,186 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox.min.js"></script>
+    <style>
+        .custom-admin-button {
+            margin-left: 10px;
+            vertical-align: middle;
+            height: 2.5em;
+        }
+        .ajax-status {
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .image-gallery-container {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        .image-gallery-container h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .image-gallery-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .thumbnail-wrapper {
+            position: relative;
+            width: 150px;
+            height: 150px;
+        }
+        .thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fff;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+        .thumbnail:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+{% endblock %}
+
+{% block after_field_sets %}
+    {{ block.super }}
+    <fieldset class="module aligned">
+        <h3>Image Gallery</h3>
+        <div id="image-gallery" class="image-gallery-container">
+            <div id="image-gallery-grid" class="image-gallery-grid">
+                {% if original and original.path %}
+                    {% for image in original.path.images.all %}
+                        <div class="thumbnail-wrapper">
+                            <a href="{{ image.image_file.url }}" data-lightbox="image-set" data-title="Image ID: {{ image.id }}">
+                                <img src="{{ image.image_file.url }}" alt="Image {{ image.id }}" class="thumbnail">
+                            </a>
+                        </div>
+                    {% empty %}
+                        <p>No images generated for this prompt yet.</p>
+                    {% endfor %}
+                {% else %}
+                     <p>Save the item first to generate images.</p>
+                {% endif %}
+            </div>
+        </div>
+    </fieldset>
+{% endblock %}
+
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+<script>
+(function($) {
+    $(document).ready(function() {
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
+        const objectId = pathParts[pathParts.length - 2];
+        const isAddForm = isNaN(parseInt(objectId));
+        const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+        const modelName = '{{ opts.model_name }}';
+
+        if (isAddForm) return;
+
+        function showStatus(element, message, isError) {
+            let statusDiv = element.siblings('.ajax-status');
+            if (!statusDiv.length) {
+                statusDiv = $('<span class="ajax-status"></span>');
+                element.after(statusDiv);
+            }
+            statusDiv.text(message).css('color', isError ? '#ba2121' : '#41763f');
+        }
+
+        const geminiContainer = $('.form-row.field-gemini_request .readonly').length ? $('.form-row.field-gemini_request .readonly') : $('#id_gemini_request');
+        const geminiButton = $('<button type="button" class="button custom-admin-button" id="gemini-request-btn">Pošalji upit</button>');
+        geminiContainer.after(geminiButton);
+
+        $('#gemini-request-btn').on('click', function(e) {
+            e.preventDefault();
+            const url = `/admin/imagen/${modelName}/${objectId}/gemini-request/`;
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: { 'csrfmiddlewaretoken': csrfToken },
+                beforeSend: () => {
+                    $(this).prop('disabled', true).text('Slanje...');
+                    showStatus($(this), '', false);
+                },
+                success: (data) => {
+                    if (data.success && data.prompt) {
+                        $('#id_prompt').val(data.prompt);
+                        showStatus($(this), 'Odgovor primljen!', false);
+                    } else {
+                        showStatus($(this), 'Greška: ' + (data.error || 'Nepoznata greška.'), true);
+                    }
+                },
+                error: (xhr) => showStatus($(this), 'Server greška: ' + xhr.statusText, true),
+                complete: () => $(this).prop('disabled', false).text('Pošalji upit')
+            });
+        });
+
+        const promptContainer = $('.form-row.field-prompt .readonly').length ? $('.form-row.field-prompt .readonly') : $('#id_prompt');
+        const imagenButton = $('<button type="button" class="button custom-admin-button" id="imagen-request-btn">Generiraj Slike</button>');
+        promptContainer.after(imagenButton);
+
+        $('#imagen-request-btn').on('click', function(e) {
+            e.preventDefault();
+            const pathId = $('#id_path').val();
+
+            if (!pathId) {
+                alert('Please select and save a "Path" object first.');
+                return;
+            }
+            const url = `/admin/imagen/${modelName}/${objectId}/imagen-request/`;
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: { 'csrfmiddlewaretoken': csrfToken },
+                beforeSend: () => {
+                    $(this).prop('disabled', true).text('Generiranje...');
+                    showStatus($(this), '', false);
+                    $('#image-gallery-grid').html('<p>Generating new images, please wait...</p>');
+                },
+                success: (data) => {
+                    if (data.success && data.images_html) {
+                        $('#image-gallery-grid').html(data.images_html);
+                        lightbox.init();
+                        showStatus($(this), 'Slike generirane!', false);
+                    } else {
+                        const errorMsg = 'Greška: ' + (data.error || 'Generiranje nije uspjelo.');
+                        showStatus($(this), errorMsg, true);
+                        $('#image-gallery-grid').html(`<p style="color:#ba2121;">${errorMsg}</p>`);
+                    }
+                },
+                error: (xhr) => {
+                    const errorMsg = 'Server greška: ' + xhr.statusText;
+                    showStatus($(this), errorMsg, true);
+                    $('#image-gallery-grid').html(`<p style="color:#ba2121;">${errorMsg}</p>`);
+                },
+                complete: () => $(this).prop('disabled', false).text('Generiraj Slike')
+            });
+        });
+
+        lightbox.option({
+          'resizeDuration': 200,
+          'wrapAround': true,
+          'fadeDuration': 300
+        });
+    });
+})(django.jQuery);
+</script>
+{% endblock %}
