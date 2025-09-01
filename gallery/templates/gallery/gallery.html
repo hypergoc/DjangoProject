@@ -1,28 +1,92 @@
 <!-- gallery/templates/gallery/gallery.html -->
+
+{% load static gallery_extras %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hr">
 <head>
     <meta charset="UTF-8">
-    <title>Image Gallery</title>
-    <style>
-        body { font-family: sans-serif; }
-        .gallery-container { display: flex; flex-wrap: wrap; gap: 15px; }
-        .gallery-item { border: 1px solid #ccc; padding: 5px; }
-        .gallery-item img { max-width: 200px; height: auto; display: block; }
-        .gallery-item p { text-align: center; margin: 5px 0 0; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curation Deck v2.1</title>
+    <link rel="stylesheet" href="{% static 'gallery/css/style.css' %}">
 </head>
 <body>
-    <h1>Our Gallery</h1>
-    <div class="gallery-container">
-        {% for image in images %}
-            <div class="gallery-item">
-                <img src="{{ image.path.url }}" alt="Gallery Image {{ image.id }}">
-                <p>Order: {{ image.order }}</p>
-            </div>
-        {% empty %}
-            <p>No images in the gallery yet.</p>
-        {% endfor %}
+
+    <!-- === GUMB ZA SPREMANJE (SADA UNUTAR FORME) === -->
+    <div class="save-button-container">
+        <!-- Koristit ćemo formu da bi Django dobio CSRF token -->
+        <form id="save-order-form" action="{% url 'gallery:save_image_order' %}" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="order" id="image-order-input">
+            <button type="submit" id="save-order-btn">Spremi Redoslijed</button>
+            <span id="save-status"></span>
+        </form>
     </div>
+    <!-- ============================================= -->
+
+    <main class="curation-container" id="curation-deck">
+        {% for image in images %}
+        <div class="curation-item {% if image.path.height > image.path.width %}curation-item--portrait{% endif %} {% if image.is_disabled %}is-disabled{% endif %}" data-id="{{ image.pk }}">
+            <img src="{{ image.path.url|to_resized }}" alt="Artifact #{{ image.pk }}">
+        </div>
+        {% endfor %}
+    </main>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const el = document.getElementById('curation-deck');
+            const sortable = Sortable.create(el, { animation: 150 });
+            const saveForm = $('#save-order-form');
+            const statusSpan = $('#save-status');
+
+            // --- ISPRAVLJENA LOGIKA ZA SPREMANJE REDOSLIJEDA ---
+            saveForm.on('submit', function(e) {
+                e.preventDefault(); // Spriječi standardno slanje forme
+                statusSpan.text('Spremam...');
+
+                const order = sortable.toArray(); // Dohvati novi redoslijed
+                $('#image-order-input').val(JSON.stringify(order)); // Stavi ga u skriveno polje
+
+                // Šaljemo AJAX request
+                $.ajax({
+                    type: 'POST',
+                    url: $(this).attr('action'),
+                    data: $(this).serialize(), // serialize() će pokupiti i CSRF i order
+                })
+                .done(function(response) {
+                    if (response.status === 'success') {
+                        statusSpan.text('Uspješno spremljeno!');
+                    } else {
+                        statusSpan.text('Greška: ' + response.message);
+                    }
+                })
+                .fail(function() {
+                    statusSpan.text('Server greška.');
+                });
+            });
+            // --------------------------------------------------
+
+            // --- LOGIKA ZA DESNI KLIK (ostaje ista) ---
+            $('#curation-deck').on('contextmenu', '.curation-item', function(e) {
+                e.preventDefault();
+                const item = $(this);
+                const imageId = item.data('id');
+
+                // Ovdje nam treba CSRF token za POST request
+                const csrfToken = saveForm.find('input[name="csrfmiddlewaretoken"]').val();
+
+                $.post("{% url 'gallery:toggle_disable_status' %}", {
+                    'csrfmiddlewaretoken': csrfToken,
+                    'image_id': imageId
+                })
+                .done(function(response) {
+                    if (response.status === 'success') {
+                        item.toggleClass('is-disabled', response.new_state);
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

@@ -10,7 +10,9 @@ class Image(models.Model):
     # 'order' will be used for sorting the gallery display.
     # We use PositiveIntegerField to ensure it's not negative.
     # A default value is good practice.
-    order = models.PositiveIntegerField(default=0)
+    order = models.PositiveIntegerField(default=0, db_index=True)
+
+    is_disabled = models.BooleanField(default=False, db_index=True)
 
     class Meta:
         # This tells Django to sort query results by the 'order' field by default.
@@ -18,4 +20,5 @@ class Image(models.Model):
 
     def __str__(self):
         # This provides a human-readable name in the admin panel.
-        return f"Image #{self.id} (Order: {self.order})"
+        # return f"Image #{self.id} (Order: {self.order})"
+        return f"Image #{self.pk}"
