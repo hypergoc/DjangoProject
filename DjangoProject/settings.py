@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-from . import logger_config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -137,3 +136,67 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,  # Važno, da ne ugasimo Djangove loggere
+
+    # 1. DEFINIRAMO FORMATE
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+        'kanon_format': {
+            'format': '%(asctime)s - %(name)s - [%(levelname)s] - [%(filename)s:%(lineno)d] - %(message)s',
+        }
+    },
+
+    # 2. DEFINIRAMO HANDLERE (GDJE LOGOVI IDU)
+    'handlers': {
+        # Handler koji ispisuje u terminal/konzolu
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        # Handler koji zapisuje SVE (od DEBUG nivoa) u jedan fajl
+        'file_debug': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',  # Nalazit će se u rootu
+            'formatter': 'kanon_format',
+        },
+        # Handler koji zapisuje samo GREŠKE u poseban fajl
+        'file_error': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': 'error.log',
+            'formatter': 'kanon_format',
+        },
+    },
+
+    # 3. DEFINIRAMO LOGGERE (TKO ŠTO KORISTI)
+    'loggers': {
+        # Naš glavni logger za sve naše aplikacije
+        'gemini': {
+            'handlers': ['console', 'file_debug', 'file_error'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'imagen': {
+            'handlers': ['console', 'file_debug', 'file_error'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        # Logger za sam Django
+        'django': {
+            'handlers': ['console', 'file_error'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

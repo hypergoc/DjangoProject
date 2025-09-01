@@ -7,52 +7,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox.min.js"></script>
     <style>
-        .custom-admin-button {
-            margin-left: 10px;
-            vertical-align: middle;
-            height: 2.5em;
-        }
-        .ajax-status {
-            margin-left: 10px;
-            font-weight: bold;
-        }
-        .image-gallery-container {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ccc;
-            background-color: #f9f9f9;
-            border-radius: 4px;
-        }
-        .image-gallery-container h3 {
-            margin-top: 0;
-            margin-bottom: 15px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 10px;
-        }
-        .image-gallery-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        .thumbnail-wrapper {
-            position: relative;
-            width: 150px;
-            height: 150px;
-        }
-        .thumbnail {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: #fff;
-            cursor: pointer;
-            transition: transform 0.2s ease-in-out;
-        }
-        .thumbnail:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
+        .custom-admin-button { margin-left: 10px; vertical-align: middle; height: 2.5em; }
+        .ajax-status { margin-left: 10px; font-weight: bold; }
+        .image-gallery-container { margin-top: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9; border-radius: 4px; }
+        .image-gallery-container h3 { margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+        .image-gallery-grid { display: flex; flex-wrap: wrap; gap: 15px; }
+        .thumbnail-wrapper { position: relative; width: 150px; height: 150px; }
+        .thumbnail { width: 100%; height: 100%; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; background-color: #fff; cursor: pointer; transition: transform 0.2s ease-in-out; }
+        .thumbnail:hover { transform: scale(1.05); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
     </style>
 {% endblock %}
 
@@ -62,7 +24,11 @@
         <h3>Image Gallery</h3>
         <div id="image-gallery" class="image-gallery-container">
             <div id="image-gallery-grid" class="image-gallery-grid">
-                <p>Save or create the item first to see or generate images.</p>
+                {% if original and original.path %}
+                    {% include 'admin/imagen/partials/image_gallery_grid.html' with images=original.path.images.all %}
+                {% else %}
+                     <p>Save or create the item first to see or generate images.</p>
+                {% endif %}
             </div>
         </div>
     </fieldset>
@@ -74,89 +40,92 @@
 <script>
 (function($) {
     $(document).ready(function() {
-        // Ispravan način za dohvaćanje ID-a. Ako ne postoji u contextu (na add stranici), bit će null.
         let objectId = {% if object_id %}'{{ object_id }}'{% else %}null{% endif %};
         let isAddForm = (objectId === null);
 
         const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
         const geminiUrl = "{% url 'imagen:ajax_gemini_request' %}";
+        const imagenUrl = "{% url 'imagen:ajax_imagen_request' %}";
 
         function showStatus(element, message, isError) {
             let statusDiv = element.siblings('.ajax-status');
-            if (!statusDiv.length) {
-                statusDiv = $('<span class="ajax-status"></span>');
-                element.after(statusDiv);
-            }
+            if (!statusDiv.length) { statusDiv = $('<span class="ajax-status"></span>'); element.after(statusDiv); }
             statusDiv.text(message).css('color', isError ? '#ba2121' : '#41763f');
         }
 
-        const geminiContainer = $('.form-row.field-gemini_request .readonly').length ? $('.form-row.field-gemini_request .readonly') : $('#id_gemini_request');
+        const geminiContainer = $('.form-row.field-gemini_request');
         const geminiButton = $('<button type="button" class="button custom-admin-button" id="gemini-request-btn">Pošalji upit</button>');
-        geminiContainer.after(geminiButton);
-
+        geminiContainer.find('div.readonly').length ? geminiContainer.find('div.readonly').after(geminiButton) : $('#id_gemini_request').after(geminiButton);
+        
         $('#gemini-request-btn').on('click', function(e) {
             e.preventDefault();
             const geminiText = $('#id_gemini_request').val();
-            if (!geminiText.trim()) {
-                alert('Gemini Request polje je prazno.');
-                return;
-            }
+            if (!geminiText.trim()) { alert('Gemini Request polje je prazno.'); return; }
 
             $.ajax({
-                url: geminiUrl,
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    'gemini_request_text': geminiText,
-                    'object_id': objectId // Šalje null ako je `isAddForm` true
-                }),
+                url: geminiUrl, type: 'POST', contentType: 'application/json',
+                data: JSON.stringify({'gemini_request_text': geminiText, 'object_id': objectId}),
                 headers: { 'X-CSRFToken': csrfToken },
-                beforeSend: () => {
-                    $(this).prop('disabled', true).text('Slanje...');
-                    showStatus($(this), '', false);
-                },
+                beforeSend: () => { $(this).prop('disabled', true).text('Slanje...'); showStatus($(this), '', false); },
                 success: (data) => {
                     if (data.success) {
                         $('#id_prompt').val(data.prompt);
                         let statusMessage = 'Odgovor primljen i spremljen!';
-                        
-                        // Ako smo bili na 'add' formi, sada imamo ID i moramo ažurirati stanje stranice
                         if (isAddForm && data.new_object_id) {
-                            objectId = data.new_object_id;
-                            isAddForm = false;
-                            
-                            // Ažuriraj URL u browseru bez reloada
+                            objectId = data.new_object_id; isAddForm = false;
                             const newUrl = window.location.pathname.replace('/add/', `/${objectId}/change/`);
                             window.history.pushState({path: newUrl}, '', newUrl);
-                            
-                            // Promijeni naslov stranice da reflektira promjenu
                             $('h1').text($('h1').text().replace('Add', 'Change'));
-                            
                             statusMessage = 'Objekt kreiran! Sada možete generirati slike.';
                         }
                         showStatus($(this), statusMessage, false);
-                    } else {
-                        showStatus($(this), 'Greška: ' + (data.error || 'Nepoznata greška.'), true);
-                    }
+                    } else { showStatus($(this), 'Greška: ' + (data.error || 'Nepoznata greška.'), true); }
                 },
                 error: (xhr) => showStatus($(this), 'Server greška: ' + (xhr.responseJSON?.error || xhr.statusText), true),
                 complete: () => $(this).prop('disabled', false).text('Pošalji upit')
             });
         });
         
-        const promptContainer = $('.form-row.field-prompt .readonly').length ? $('.form-row.field-prompt .readonly') : $('#id_prompt');
+        const promptContainer = $('.form-row.field-prompt');
         const imagenButton = $('<button type="button" class="button custom-admin-button" id="imagen-request-btn">Generiraj Slike</button>');
-        promptContainer.after(imagenButton);
+        promptContainer.find('div.readonly').length ? promptContainer.find('div.readonly').after(imagenButton) : $('#id_prompt').after(imagenButton);
         
         $('#imagen-request-btn').on('click', function(e) {
             e.preventDefault();
-            if (isAddForm) {
-                alert('Molimo prvo pošaljite Gemini upit kako bi se objekt kreirao.');
-                return;
-            }
-            alert('Logika za generiranje slika još nije implementirana. Objekt ID je: ' + objectId);
+            if (isAddForm) { alert('Molimo prvo pošaljite Gemini upit kako bi se objekt kreirao.'); return; }
+            const promptText = $('#id_prompt').val();
+            if (!promptText.trim()) { alert('Prompt polje je prazno.'); return; }
+
+            $.ajax({
+                url: imagenUrl, type: 'POST', contentType: 'application/json',
+                data: JSON.stringify({'object_id': objectId}),
+                headers: { 'X-CSRFToken': csrfToken },
+                beforeSend: () => {
+                    $(this).prop('disabled', true).text('Generiranje...');
+                    showStatus($(this), '', false);
+                    $('#image-gallery-grid').html('<p>Generating image, please wait...</p>');
+                },
+                success: (data) => {
+                    if (data.success) {
+                        showStatus($(this), 'Slika uspješno generirana!', false);
+                        $('#image-gallery-grid').html(data.images_html);
+                        $('.field-image_count div.readonly').text(data.new_image_count);
+                        lightbox.init();
+                    } else {
+                        showStatus($(this), 'Greška: ' + (data.error || 'Nepoznata greška.'), true);
+                        $('#image-gallery-grid').html(`<p style="color:red;">${data.error || 'Failed to generate image.'}</p>`);
+                    }
+                },
+                error: (xhr) => {
+                    const errorMsg = 'Server greška: ' + (xhr.responseJSON?.error || xhr.statusText);
+                    showStatus($(this), errorMsg, true);
+                    $('#image-gallery-grid').html(`<p style="color:red;">${errorMsg}</p>`);
+                },
+                complete: () => { $(this).prop('disabled', false).text('Generiraj Slike'); }
+            });
         });
 
+        lightbox.option({'resizeDuration': 200, 'wrapAround': true, 'fadeDuration': 300});
     });
 })(django.jQuery);
 </script>
