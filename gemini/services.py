@@ -20,7 +20,7 @@ except KeyError:
 
 
 # --- FUNKCIJA #1: POZIVANJE AI-ja ---
-def get_ai_response(prompt: str, history: str):
+def get_ai_response(prompt: str, history: int):
     """
     Vraća tuple: (tekst_odgovora, sirovi_response, tokeni, poslani_request)
     """
@@ -28,19 +28,14 @@ def get_ai_response(prompt: str, history: str):
         model_name = os.environ.get("GEMINI_MODEL", "gemini-pro")
         model = genai.GenerativeModel(model_name=model_name)
 
-        history_count = SettingsModel.objects.filter(path='gemini/geminiquery/history_count').first().value
-
-        if history > history_count:
-            history_count = history
-
-        history_from_db = GeminiQuery.objects.all().order_by('-timestamp')[:history_count]
+        history_from_db = GeminiQuery.objects.all().order_by('-timestamp')[:history]
 
         api_history = []
 
         prompt_rule = SettingsModel.objects.filter(path='gemini/geminiquery/rules_prompt').first().value
 
         if prompt_rule:
-            api_history.append(prompt_rule)
+            prompt = f"{prompt}, ({prompt_rule})"
 
         for entry in reversed(history_from_db):
             api_history.append({"role": "user", "parts": [entry.question]})
@@ -48,9 +43,14 @@ def get_ai_response(prompt: str, history: str):
 
 
         full_request_payload = {
-            "model_used": model_name, "history_len": len(api_history),
-            "history": api_history, "prompt": prompt
+            "model_used": model_name,
+            "prompt": prompt
         }
+
+
+        if api_history and len(api_history) > 0:
+            full_request_payload["history_len"] = len(api_history)
+            full_request_payload["history"] = api_history
 
         chat = model.start_chat(history=api_history)
         response = chat.send_message(prompt)
