@@ -47,7 +47,6 @@ def get_ai_response(prompt: str, history: int):
             "prompt": prompt
         }
 
-
         if api_history and len(api_history) > 0:
             full_request_payload["history_len"] = len(api_history)
             full_request_payload["history"] = api_history
