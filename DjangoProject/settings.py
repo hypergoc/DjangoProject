@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     'gallery',
     'gemini',
     "imagen",
-    'settings'
+    'settings',
+    'instagram'
 ]
 
 MIDDLEWARE = [
