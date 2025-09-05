@@ -48,7 +48,7 @@ class GeminiQueryAdmin(admin.ModelAdmin):
                     folder_content = services.read_folder_contents(selected_folder)
                     full_prompt = f"Pitanje: '{question}'\n\nKontekst iz foldera '{selected_folder}':\n{folder_content}"
 
-                ai_response, raw_resp_dict, tokens, request_payload = services.get_ai_response(full_prompt)
+                ai_response, raw_resp_dict, tokens, request_payload = services.get_ai_response(full_prompt, history_count)
 
                 GeminiQuery.objects.create(
                     question=question, response=ai_response, raw_response=raw_resp_dict,
@@ -60,8 +60,6 @@ class GeminiQueryAdmin(admin.ModelAdmin):
                     message += f" Potrošeno tokena: {tokens}"
                 self.message_user(request, message)
 
-        # extra_context['history_count'] = int(SettingsModel.objects.filter(path='gemini/geminiquery/history_count').first().value)
-
         project_root = settings.BASE_DIR
         excluded_folders = {'.git', '.idea', 'venv', '__pycache__', '.venv', 'media'}
         project_folders = []
@@ -72,6 +70,8 @@ class GeminiQueryAdmin(admin.ModelAdmin):
         except Exception as e:
             print(f"Greška pri čitanju foldera: {e}")
 
+        extra_context['history_count'] = int(
+            SettingsModel.objects.filter(path='gemini/geminiquery/history_count').first().value)
         extra_context['project_folders'] = sorted(project_folders)
 
         extra_context['media'] = self.media + forms.Media(
