@@ -204,6 +204,5 @@ LOGGING = {
     },
 }
 
-INSTAGRAM_USERNAME='goczg'
-INSTAGRAM_PASSWORD='J4kazapork@'
+
 
