@@ -8,7 +8,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--limit', type=int, default=5,
+            '--limit', type=int,
             help='Broj najnovijih objava za koje se dohvaća statistika.',
         )
 
