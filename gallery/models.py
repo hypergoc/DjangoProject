@@ -29,6 +29,8 @@ class Image(models.Model):
 SIDE_CHOICES = (
     ('L', 'Left'),
     ('R', 'Right'),
+    ('T', 'Top'),
+    ('B', 'Bottom'),
 )
 
 class ImageSideProfileValue(models.Model):
