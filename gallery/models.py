@@ -14,6 +14,8 @@ class Image(models.Model):
 
     is_disabled = models.BooleanField(default=False, db_index=True)
 
+    used = models.BooleanField(default=False, db_index=True)
+
     class Meta:
         # This tells Django to sort query results by the 'order' field by default.
         ordering = ['order']
@@ -22,3 +24,28 @@ class Image(models.Model):
         # This provides a human-readable name in the admin panel.
         # return f"Image #{self.id} (Order: {self.order})"
         return f"Image #{self.pk}"
+
+
+SIDE_CHOICES = (
+    ('L', 'Left'),
+    ('R', 'Right'),
+)
+
+class ImageSideProfileValue(models.Model):
+    image = models.ForeignKey(Image, on_delete=models.CASCADE, related_name='side_profile_values')
+    side = models.CharField(max_length=1, choices=SIDE_CHOICES)
+    profile_id = models.IntegerField(null=True, blank=True)
+    value = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"Profile for Image #{self.image_id} - {self.get_side_display()}"
+
+class ImageConnection(models.Model):
+    image = models.ForeignKey(Image, on_delete=models.CASCADE, related_name='connections_from')
+    image_second = models.ForeignKey(Image, on_delete=models.CASCADE, related_name='connections_to')
+    side = models.CharField(max_length=1, choices=SIDE_CHOICES)
+    is_labeled_ai = models.BooleanField(default=False)
+    value = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"Connection from Image #{self.image_id} to #{self.image_second_id}"
