@@ -41,10 +41,10 @@
 
     <div id="image-gallery" class="row">
         {% for image in images %}
-        <div class="col-6 col-sm-4 col-md-3 mb-4 gallery-item" data-id="{{ image.id }}">
+        <div class="col-6 col-sm-4 col-md-3 mb-4 gallery-item ma p-0" data-id="{{ image.id }}">
             <div class="card">
                 <img src="{{ image.path.url }}" class="card-img-top" alt="Image {{ image.id }}">
-                <div class="card-body p-2">
+                <div class="card-body p-2" hidden="hidden">
                     <p class="card-text text-center">Image ID: {{ image.id }}</p>
                 </div>
             </div>
