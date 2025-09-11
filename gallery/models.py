@@ -5,7 +5,7 @@ class Image(models.Model):
     # 'path' will store the image file.
     # upload_to='gallery_images/' tells Django to save uploaded images
     # into a 'gallery_images' subfolder inside your media root.
-    path = models.ImageField(upload_to='gallery_images/')
+    path = models.CharField(max_length=255)
 
     # 'order' will be used for sorting the gallery display.
     # We use PositiveIntegerField to ensure it's not negative.

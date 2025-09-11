@@ -12,6 +12,7 @@ def gallery_view(request):
     # The .all() will automatically use the 'ordering' from the model's Meta class
     # images = Image.objects.all()
     images = Image.objects.filter(is_disabled=False)
+
     context = {
         'images': images,
     }

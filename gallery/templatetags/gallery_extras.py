@@ -11,5 +11,5 @@ def to_resized(image_url_string):
     i zamjenjuje 'gallery_images' s 'resized'.
     """
     if isinstance(image_url_string, str):
-        return image_url_string.replace('/gallery_images/', '/resized/')
+        return image_url_string.replace('gallery_images', 'resized')
     return image_url_string
