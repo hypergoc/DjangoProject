@@ -1,18 +1,38 @@
 <!-- gallery/templates/gallery/gallery.html -->
 
 {% load static gallery_extras %}
+
+
 <!DOCTYPE html>
-<html lang="hr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Curation Deck v2.1</title>
-    <link rel="stylesheet" href="{% static 'gallery/css/style.css' %}">
+    <title>Gallery</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .gallery-item .card {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .gallery-item.selected .card {
+            border: 3px solid #007bff;
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+        }
+        .controls {
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: .25rem;
+        }
+    </style>
 </head>
 <body>
 
-    <!-- === GUMB ZA SPREMANJE (SADA UNUTAR FORME) === -->
-    <div class="save-button-container">
+<div class="container mt-4">
+    <h2 class="mb-4">Gallery</h2>
+
+    <div class="controls mb-3">
+        <div class="save-button-container">
         <!-- Koristit ćemo formu da bi Django dobio CSRF token -->
         <form id="save-order-form" action="{% url 'gallery:save_image_order' %}" method="POST">
             {% csrf_token %}
@@ -21,72 +41,168 @@
             <span id="save-status"></span>
         </form>
     </div>
-    <!-- ============================================= -->
 
-    <main class="curation-container" id="curation-deck">
+        <label for="side-selector" class="mr-2">Connection Side:</label>
+        <select id="side-selector" class="form-control d-inline-block" style="width: auto;">
+            <option value="L">Left</option>
+            <option value="R">Right</option>
+            <option value="T">Top</option>
+            <option value="B">Bottom</option>
+        </select>
+        <button id="save-ai-connection-btn" class="btn btn-primary ml-2" disabled>Spremi ai_labeled info</button>
+        <p class="text-muted mt-2 mb-0">Use Ctrl+Click to select exactly two images.</p>
+    </div>
+
+    <div id="image-gallery" class="row" style="width:940px">
         {% for image in images %}
-        <div class="curation-item {% if image.is_disabled %}is-disabled{% endif %}" data-id="{{ image.pk }}">
-            <img src="/media/{{ image.path|to_resized }}" alt="Artifact #{{ image.pk }}">
+        <div class="col-6 col-sm-4 col-md-4 mb-4 gallery-item ma p-0" data-id="{{ image.id }}" data-order="{{image.order}}">
+            <div class="card">
+                <img src="/media/{{ image.path|to_resized }}" class="card-img-top" alt="Image {{ image.id }}">
+                <div class="card-body p-2" >
+                    <p class="card-text text-center">Image ID: {{ image.id }} order: {{image.order}}</p>
+                </div>
+            </div>
         </div>
         {% endfor %}
-    </main>
+    </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const el = document.getElementById('curation-deck');
-            const sortable = Sortable.create(el, { animation: 150 });
-            const saveForm = $('#save-order-form');
-            const statusSpan = $('#save-status');
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gallery = document.getElementById('image-gallery');
+    const saveBtn = document.getElementById('save-ai-connection-btn');
+    const sideSelector = document.getElementById('side-selector');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const statusSpan = document.getElementById('save-status');
 
-            // --- ISPRAVLJENA LOGIKA ZA SPREMANJE REDOSLIJEDA ---
-            saveForm.on('submit', function(e) {
-                e.preventDefault(); // Spriječi standardno slanje forme
-                statusSpan.text('Spremam...');
+    const saveForm = $('#save-order-form');
 
-                const order = sortable.toArray(); // Dohvati novi redoslijed
-                $('#image-order-input').val(JSON.stringify(order)); // Stavi ga u skriveno polje
+    let selectedImages = [];
+     const sortable = new Sortable(gallery, {
+	    animation: 150,
+	    ghostClass: 'blue-background-class'
+    });
 
-                // Šaljemo AJAX request
-                $.ajax({
-                    type: 'POST',
-                    url: $(this).attr('action'),
-                    data: $(this).serialize(), // serialize() će pokupiti i CSRF i order
-                })
-                .done(function(response) {
-                    if (response.status === 'success') {
-                        statusSpan.text('Uspješno spremljeno!');
-                    } else {
-                        statusSpan.text('Greška: ' + response.message);
-                    }
-                })
-                .fail(function() {
-                    statusSpan.text('Server greška.');
-                });
-            });
-            // --------------------------------------------------
+    gallery.addEventListener('click', function(event) {
+        const galleryItem = event.target.closest('.gallery-item');
+        if (!galleryItem) return;
 
-            // --- LOGIKA ZA DESNI KLIK (ostaje ista) ---
-            $('#curation-deck').on('contextmenu', '.curation-item', function(e) {
-                e.preventDefault();
-                const item = $(this);
-                const imageId = item.data('id');
+        if (event.ctrlKey) {
+            handleCtrlClick(galleryItem);
+        } else {
+            handleSingleClick(galleryItem);
+        }
 
-                // Ovdje nam treba CSRF token za POST request
-                const csrfToken = saveForm.find('input[name="csrfmiddlewaretoken"]').val();
+        saveBtn.disabled = selectedImages.length !== 2;
+    });
 
-                $.post("{% url 'gallery:toggle_disable_status' %}", {
-                    'csrfmiddlewaretoken': csrfToken,
-                    'image_id': imageId
-                })
-                .done(function(response) {
-                    if (response.status === 'success') {
-                        item.toggleClass('is-disabled', response.new_state);
-                    }
-                });
-            });
+    function handleCtrlClick(item) {
+        const imageId = item.dataset.id;
+        const isSelected = item.classList.contains('selected');
+
+        if (isSelected) {
+            item.classList.remove('selected');
+            selectedImages = selectedImages.filter(id => id !== imageId);
+        } else {
+            if (selectedImages.length < 2) {
+                item.classList.add('selected');
+                selectedImages.push(imageId);
+            } else {
+                alert('You can only select up to 2 images.');
+            }
+        }
+    }
+
+
+    saveForm.on('submit', function(e) {
+        e.preventDefault(); // Spriječi standardno slanje forme
+
+        const order = sortable.toArray(); // Dohvati novi redoslijed
+        $('#image-order-input').val(JSON.stringify(order)); // Stavi ga u skriveno polje
+
+        // Šaljemo AJAX request
+        $.ajax({
+            type: 'POST',
+            url: $(this).attr('action'),
+            data: $(this).serialize(), // serialize() će pokupiti i CSRF i order
+        })
+        .done(function(response) {
+            if (response.status === 'success') {
+                alert('Uspješno spremljeno!');
+                location.reload();
+            } else {
+                alert('Greška: ' + response.message);
+            }
+        })
+        .fail(function() {
+            alert('Server greška.');
         });
-    </script>
+    });
+
+
+    function handleSingleClick(item) {
+        const imageId = item.dataset.id;
+        const isCurrentlySelected = item.classList.contains('selected');
+
+        document.querySelectorAll('.gallery-item.selected').forEach(el => {
+            el.classList.remove('selected');
+        });
+
+        if (!isCurrentlySelected || selectedImages.length !== 1) {
+            item.classList.add('selected');
+            selectedImages = [imageId];
+        } else {
+            selectedImages = [];
+        }
+    }
+
+    saveBtn.addEventListener('click', function() {
+        if (selectedImages.length !== 2) {
+            alert('Please select exactly two images.');
+            return;
+        }
+
+        const payload = {
+            image1_id: selectedImages[0],
+            image2_id: selectedImages[1],
+            side: sideSelector.value
+        };
+
+        fetch("{% url 'gallery:save_ai_connection' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.message || 'Server error'); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                document.querySelectorAll('.gallery-item.selected').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                selectedImages = [];
+                saveBtn.disabled = true;
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred: ' + error.message);
+        });
+    });
+});
+</script>
+
 </body>
 </html>
