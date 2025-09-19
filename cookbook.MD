@@ -20,7 +20,7 @@ DATABASES = {
 
 # requirements
 pip freeze -l > requirements.txt
-pip install-r requirements.txt
+pip install -r requirements.txt
 
 # adminuser create
 python manage.py createsuperuser

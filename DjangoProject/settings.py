@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+# import settings.settings as custom_settings
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +26,7 @@ SECRET_KEY = 'django-insecure-80#-ov@g_=sv)#m2xr41aqomr@dukz3@9a9d99d&blvdmh^ng$
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.2', '127.0.0.1']
 
 # Application definition
 
@@ -39,7 +40,15 @@ INSTALLED_APPS = [
     'gallery',
     'gemini',
     "imagen",
-    'settings'
+    'settings',
+    'instagram',
+    'apps.cards',
+    'apps.dashboards',
+    'apps.extended_ui',
+    'apps.forms',
+    'apps.icons',
+    'apps.form_layouts',
+    'apps.ui',
 ]
 
 MIDDLEWARE = [
@@ -202,3 +211,6 @@ LOGGING = {
         },
     },
 }
+
+
+

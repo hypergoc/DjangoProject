@@ -6,7 +6,7 @@ from PIL import Image, UnidentifiedImageError
 TARGET_WIDTH = 310
 TARGET_HEIGHT = 414
 TARGET_ASPECT = TARGET_WIDTH / TARGET_HEIGHT
-INPUT_FOLDER = os.path.join('media', 'gallery_images')
+INPUT_FOLDER = os.path.join('media', '916')
 OUTPUT_FOLDER = os.path.join('media', 'resized')
 
 

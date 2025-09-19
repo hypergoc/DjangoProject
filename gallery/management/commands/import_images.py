@@ -4,6 +4,11 @@ from django.core.management.base import BaseCommand
 from django.core.files import File
 from django.conf import settings
 from gallery.models import Image
+import logging
+
+
+
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     # Updated help text to reflect the new recommended structure
@@ -39,15 +44,19 @@ class Command(BaseCommand):
                 db_image_path = os.path.join('gallery_images', filename)
 
                 _, created = Image.objects.get_or_create(path=db_image_path)
-
-                if created:
-                    image_object = Image.objects.get(path=db_image_path)
-                    with open(image_file_path, 'rb') as f:
-                        django_file = File(f)
-                        image_object.path.save(filename, django_file, save=True)
-                    images_imported += 1
-                    self.stdout.write(self.style.SUCCESS(f'Successfully imported "{filename}"'))
-                else:
-                    self.stdout.write(self.style.WARNING(f'Skipped "{filename}", already exists in DB.'))
+                try:
+                    if created:
+                        print('created')
+                        image_object = Image.objects.get(path=db_image_path)
+                        with open(image_file_path, 'rb') as f:
+                            django_file = File(f)
+                            image_object.path.save(filename, django_file, save=True)
+                        images_imported += 1
+                        self.stdout.write(self.style.SUCCESS(f'Successfully imported "{filename}"'))
+                    else:
+                        self.stdout.write(self.style.WARNING(f'Skipped "{filename}", already exists in DB.'))
+                except Exception as e:
+                    logger.error(
+                        "Import error: {e}")
 
         self.stdout.write(self.style.SUCCESS(f'Scan complete. Found {images_found} images, imported {images_imported} new images.'))
