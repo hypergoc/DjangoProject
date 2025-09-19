@@ -21,8 +21,8 @@ class Command(BaseCommand):
             followers_unit = insights.get('followers_unit', {})
             
             AccountInsight.objects.create(
-                profile_visits=account_unit.get('profile_visits_metric_count', 0),
-                followers_delta_from_last_week=followers_unit.get('followers_delta_from_last_week', 0),
+                profile_visits=account_unit.get('profile_visits_metric_count') or 0,
+                followers_delta_from_last_week=followers_unit.get('followers_delta_from_last_week') or 0,
                 gender_graph=followers_unit.get('gender_graph', {}),
                 all_followers_age_graph=followers_unit.get('all_followers_age_graph', {}),
                 followers_top_cities_graph=followers_unit.get('followers_top_cities_graph', {}),

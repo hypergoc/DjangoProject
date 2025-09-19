@@ -5,6 +5,7 @@ from instagrapi import Client
 from instagrapi.exceptions import LoginRequired
 from django.conf import settings
 from django.core.management.base import CommandError
+# from settings.models import Setting as InstagramSetting
 
 # Postavke za ispis u stdout, korisno za management komande
 logger = logging.getLogger(__name__)
@@ -24,12 +25,15 @@ def get_instagram_client():
     """
     # Preporučuje se definirati ove vrijednosti u settings.py
     try:
-        username = settings.INSTAGRAM_USERNAME
-        password = settings.INSTAGRAM_PASSWORD
+        model = InstagramSetting.objects.all()
+        for config in model:
+            if config.path == 'instagram/username':
+                username = config.value
+            if config.path == 'instagram/password':
+                password = config.value
+
     except AttributeError:
         logger.warning("Upozorenje: Koriste se hardkodirani kredencijali. Preporučuje se postaviti INSTAGRAM_USERNAME i INSTAGRAM_PASSWORD u settings.py")
-        username = 'goczg'
-        password = 'J4kazapork@'
 
     cl = Client()
     cl.delay_range = [1, 3]

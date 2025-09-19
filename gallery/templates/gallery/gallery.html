@@ -26,7 +26,7 @@
         }
     </style>
 </head>
-<body>
+<body style="background:#000">
 
 <div class="container mt-4">
     <h2 class="mb-4">Gallery</h2>
@@ -55,10 +55,10 @@
 
     <div id="image-gallery" class="row" style="width:940px">
         {% for image in images %}
-        <div class="col-6 col-sm-4 col-md-4 mb-4 gallery-item ma p-0" data-id="{{ image.id }}" data-order="{{image.order}}">
-            <div class="card">
+        <div class="col-6 col-sm-4 col-md-4 gallery-item ma p-0 mb-0" data-id="{{ image.id }}" data-order="{{image.order}}">
+            <div class="card" style="background-color:#000">
                 <img src="/media/{{ image.path|to_resized }}" class="card-img-top" alt="Image {{ image.id }}">
-                <div class="card-body p-2" >
+                <div class="card-body p-2" hidden>
                     <p class="card-text text-center">Image ID: {{ image.id }} order: {{image.order}}</p>
                 </div>
             </div>

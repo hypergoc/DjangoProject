@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from instagrapi.exceptions import MediaNotFound
 from instagram.models import InstagramPost, ContentInsight
 from instagram.services import get_instagram_client
+import time
 
 class Command(BaseCommand):
     help = 'Fetches insights data for recent Instagram posts from the database.'
@@ -62,7 +63,7 @@ class Command(BaseCommand):
                     profile_visits=profile_visits,
                 )
                 self.stdout.write(self.style.SUCCESS(f"Uspješno spremljena statistika za objavu {post.instagram_id}."))
-
+                time.sleep(3)
             except MediaNotFound:
                 self.stdout.write(self.style.ERROR(f"Objava s kodom {post.instagram_id} nije pronađena na Instagramu."))
             except Exception as e:

@@ -8,9 +8,6 @@ from instagrapi.exceptions import LoginRequired, ClientError
 import os
 from .models import InstagramPost, ContentInsight, AccountInsight
 
-INSTAGRAM_USERNAME = 'goczg'
-INSTAGRAM_PASSWORD = 'J4kazapork@'
-
 class ContentInsightInline(admin.TabularInline):
     model = ContentInsight
     fields = ('fetched_at', 'likes', 'comments', 'reach', 'impressions', 'saved', 'profile_visits')
