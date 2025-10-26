@@ -5,9 +5,19 @@ from django.core.management.base import BaseCommand, CommandError
 from django.core.files.base import ContentFile
 from instagram.models import InstagramPost
 from instagram.services import get_instagram_client
+from pprint import pprint
 
 class Command(BaseCommand):
     help = 'Fetches posts from a specific Instagram profile and saves them to the database.'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--limit', type=int,
+            help='Broj najnovijih objava za koje se dohvaća statistika.',
+        )
+        parser.add_argument(
+            '--instagram_id', type=str,
+        )
 
     def save_image_from_url(self, post_object, image_url):
         try:
@@ -26,6 +36,7 @@ class Command(BaseCommand):
             return False
 
     def handle(self, *args, **options):
+        limit = options['limit'] if 'limit' in options else 0
         try:
             cl = get_instagram_client()
         except CommandError as e:
@@ -36,14 +47,14 @@ class Command(BaseCommand):
         try:
             user_id = cl.user_id_from_username(cl.username)
             self.stdout.write(f"Dohvaćanje objava za korisnika: {cl.username} (ID: {user_id})...")
-            posts = cl.user_medias(user_id=user_id) # Povećan broj za svaki slučaj
+            posts = cl.user_medias(user_id=user_id, amount=limit) # Povećan broj za svaki slučaj
+            print(posts)
         except Exception as e:
             raise CommandError(f"Neuspješno dohvaćanje objava za korisnika '{cl.username}': {e}")
 
         created_count, updated_count = 0, 0
         for post in posts:
             self.stdout.write(f"Obrada objave: {post.code}")
-
             image_url = ""
             candidates = []
             if post.media_type == 8 and post.resources:

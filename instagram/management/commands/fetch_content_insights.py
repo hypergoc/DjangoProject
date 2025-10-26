@@ -12,9 +12,14 @@ class Command(BaseCommand):
             '--limit', type=int,
             help='Broj najnovijih objava za koje se dohvaća statistika.',
         )
+        parser.add_argument(
+            '--instagram_id', type=str,
+        )
 
     def handle(self, *args, **options):
         limit = options['limit']
+        instagram_id = options['instagram_id']
+
         try:
             cl = get_instagram_client()
         except CommandError as e:
@@ -22,8 +27,12 @@ class Command(BaseCommand):
         except Exception as e:
             raise CommandError(f"Greška prilikom inicijalizacije Instagram klijenta: {e}")
 
+        posts_to_check = InstagramPost.objects.all().filter(instagram_pk__isnull=False)
+        if instagram_id:
+            posts_to_check = posts_to_check.filter(instagram_id=instagram_id)
+
         # Dohvaćamo samo objave koje imaju PK, jer je potreban za dohvaćanje statistike
-        posts_to_check = InstagramPost.objects.filter(instagram_pk__isnull=False).order_by('-publish_date')[:limit]
+        posts_to_check = posts_to_check.order_by('-publish_date')[:limit]
         
         if not posts_to_check:
             self.stdout.write(self.style.WARNING("Nema objava u bazi podataka za koje bi se dohvatila statistika."))
@@ -37,7 +46,7 @@ class Command(BaseCommand):
                 
                 # Instagrapi metoda 'insights_media' je alias za 'media_info_a1' i vraća detaljan rječnik
                 insights = cl.insights_media(post.instagram_pk)
-                
+
                 # Parsiranje nove strukture odgovora
                 metrics_node = insights.get('inline_insights_node', {}).get('metrics', {})
 

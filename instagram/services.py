@@ -5,7 +5,7 @@ from instagrapi import Client
 from instagrapi.exceptions import LoginRequired
 from django.conf import settings
 from django.core.management.base import CommandError
-# from settings.models import Setting as InstagramSetting
+from settings.models import Setting as InstagramSetting
 
 # Postavke za ispis u stdout, korisno za management komande
 logger = logging.getLogger(__name__)
@@ -18,6 +18,9 @@ if not logger.handlers:
     logger.setLevel(logging.INFO)
 
 def get_instagram_client():
+
+    username = ''
+    password = ''
     """
     Inicijalizira i prijavljuje instagrapi klijent.
     Upravlja učitavanjem/spremanjem sesije i 2FA autentikacijom.
@@ -40,10 +43,15 @@ def get_instagram_client():
     session_file = "session.json"
 
     try:
-        if os.path.exists(session_file):
-            logger.info(f"Učitavanje sesije iz datoteke {session_file}...")
-            cl.load_settings(session_file)
-        
+        # if os.path.exists(session_file):
+        #     logger.info(f"Učitavanje sesije iz datoteke {session_file}...")
+        #     cl.load_settings(session_file)
+        #
+        # print(username)
+        # print(password)
+        # print(cl)
+        #
+        # # sys.exit()
         logger.info(f"Prijava kao korisnik {username}...")
         cl.login(username, password)
         cl.dump_settings(session_file)
