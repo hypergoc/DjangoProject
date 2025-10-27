@@ -40,6 +40,7 @@ class InstagramPostAdmin(admin.ModelAdmin):
     
     inlines = [ContentInsightInline]
 
+    # TODO::diff -1d in list view
     def image_preview_list(self, obj):
         if obj.post_image and hasattr(obj.post_image, 'url'):
             return format_html('<a href="{0}" target="_blank"><img src="{0}" style="height: 60px; width: auto;" /></a>', obj.post_image.url)

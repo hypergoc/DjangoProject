@@ -1,8 +1,8 @@
+import sys
 from django.core.management.base import BaseCommand, CommandError
-from instagrapi.exceptions import MediaNotFound
-from instagram.models import InstagramPost, ContentInsight
+from django.db import transaction
 from instagram.services import get_instagram_client
-import time
+from instagram.models import InstagramPost, ContentInsight, Hashtag, HashtagInsight, Impression
 
 class Command(BaseCommand):
     help = 'Fetches insights data for recent Instagram posts from the database.'
@@ -33,17 +33,30 @@ class Command(BaseCommand):
 
         # Dohvaćamo samo objave koje imaju PK, jer je potreban za dohvaćanje statistike
         posts_to_check = posts_to_check.order_by('-publish_date')[:limit]
-        
+
+        # print(posts_to_check)
+        # sys.exit()
+
         if not posts_to_check:
             self.stdout.write(self.style.WARNING("Nema objava u bazi podataka za koje bi se dohvatila statistika."))
             return
 
-        self.stdout.write(self.style.SUCCESS(f"\nDohvaćanje statistike za najnovijih {len(posts_to_check)} objava..."))
+        # Process only posts that have the necessary PK for business insights
+        # posts = InstagramPost.objects.filter(instagram_pk__isnull=False)
+        # self.stdout.write(f"Found {posts.count()} posts with an Instagram PK to process.")
 
         for post in posts_to_check:
+
+            self.stdout.write(f"--- Processing post: {post.instagram_id} ---")
             try:
+                # Fetch detailed insights data which includes everything needed
+                insights_data = cl.insights_media(post.instagram_pk)
+
+                print(insights_data)
+
+
                 self.stdout.write(f"\n--- Obrada objave: {post.instagram_id} (PK: {post.instagram_pk}) ---")
-                
+
                 # Instagrapi metoda 'insights_media' je alias za 'media_info_a1' i vraća detaljan rječnik
                 insights = cl.insights_media(post.instagram_pk)
 
@@ -71,11 +84,32 @@ class Command(BaseCommand):
                     shares=shares,
                     profile_visits=profile_visits,
                 )
-                self.stdout.write(self.style.SUCCESS(f"Uspješno spremljena statistika za objavu {post.instagram_id}."))
-                time.sleep(3)
-            except MediaNotFound:
-                self.stdout.write(self.style.ERROR(f"Objava s kodom {post.instagram_id} nije pronađena na Instagramu."))
+                self.stdout.write(f"  -> Updated main insights for post {post.instagram_id}.")
+
+
+
+
+
+                hashtags = metrics_node.get('hashtags_impressions').get('hashtags').get('nodes')
+
+                for hashtag in hashtags:
+                    print(hashtag.get('name'))
+                    value = hashtag.get('organic').get('value', 0)
+                    name = hashtag.get('name')
+                    obj, create = Hashtag.objects.get_or_create(name=name)
+
+
+                    if (value > 0):
+                        HashtagInsight.objects.update_or_create(
+                            post=post,
+                            hashtag = obj,
+                            count = value
+                        )
+
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f"Neuspješno dohvaćanje statistike za objavu {post.instagram_id}: {e}"))
-        
-        self.stdout.write(self.style.SUCCESS('\nKomanda uspješno završena.'))
+                self.stdout.write(self.style.ERROR(e))
+
+
+
+
+        self.stdout.write(self.style.SUCCESS("Finished fetching all content insights."))

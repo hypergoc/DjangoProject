@@ -36,7 +36,9 @@ class Command(BaseCommand):
             return False
 
     def handle(self, *args, **options):
-        limit = options['limit'] if 'limit' in options else 0
+        limit = 0
+        if(options['limit']):
+            limit = int(options['limit'])
         try:
             cl = get_instagram_client()
         except CommandError as e:

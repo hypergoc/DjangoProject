@@ -37,6 +37,8 @@ def get_instagram_client():
 
     except AttributeError:
         logger.warning("Upozorenje: Koriste se hardkodirani kredencijali. Preporučuje se postaviti INSTAGRAM_USERNAME i INSTAGRAM_PASSWORD u settings.py")
+    # TODO:: integrate login form session file
+
 
     cl = Client()
     cl.delay_range = [1, 3]

@@ -18,6 +18,45 @@ class InstagramPost(models.Model):
     def __str__(self):
         return f"Objava {self.instagram_id} od {self.publish_date.strftime('%Y-%m-%d') if self.publish_date else 'N/A'}"
 
+class Hashtag(models.Model):
+    name = models.CharField(max_length=255, unique=True, verbose_name="Naziv")
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Hashtag"
+        verbose_name_plural = "Hashtagovi"
+
+    def __str__(self):
+        return self.name
+
+class HashtagInsight(models.Model):
+    post = models.ForeignKey(InstagramPost, on_delete=models.CASCADE, related_name='hashtag_insights', verbose_name="Objava")
+    hashtag = models.ForeignKey(Hashtag, on_delete=models.CASCADE, related_name='insights', verbose_name="Hashtag")
+    count = models.IntegerField(default=0, verbose_name="Broj impresija")
+
+    class Meta:
+        ordering = ['-count']
+        verbose_name = "Statistika hashtaga"
+        verbose_name_plural = "Statistike hashtagova"
+        unique_together = ('post', 'hashtag')
+
+    def __str__(self):
+        return f"Statistika za {self.hashtag.name} na objavi {self.post.instagram_id}"
+
+class Impression(models.Model):
+    post = models.ForeignKey(InstagramPost, on_delete=models.CASCADE, related_name='impressions', verbose_name="Objava")
+    name = models.CharField(max_length=100, verbose_name="Izvor") # e.g., FEED, PROFILE, HASHTAG
+    value = models.PositiveIntegerField(default=0, verbose_name="Vrijednost")
+
+    class Meta:
+        ordering = ['-value']
+        verbose_name = "Impresija po izvoru"
+        verbose_name_plural = "Impresije po izvoru"
+        unique_together = ('post', 'name')
+
+    def __str__(self):
+        return f"{self.name}: {self.value} for post {self.post.instagram_id}"
+
+
 class ContentInsight(models.Model):
     post = models.ForeignKey(InstagramPost, on_delete=models.CASCADE, related_name='insights', verbose_name="Objava")
     
