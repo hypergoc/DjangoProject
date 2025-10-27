@@ -6,7 +6,7 @@ from django.contrib import messages
 from instagrapi import Client
 from instagrapi.exceptions import LoginRequired, ClientError
 import os
-from .models import InstagramPost, ContentInsight, AccountInsight
+from .models import InstagramPost, ContentInsight, AccountInsight, Hashtag, HashtagInsight, Impression
 
 class ContentInsightInline(admin.TabularInline):
     model = ContentInsight
@@ -119,6 +119,61 @@ class InstagramPostAdmin(admin.ModelAdmin):
 class AccountInsightAdmin(admin.ModelAdmin):
     list_display = ('fetched_at', 'profile_visits', 'reach', 'impressions', 'followers_delta_from_last_week')
     readonly_fields = [f.name for f in AccountInsight._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+@admin.register(Hashtag)
+class HashtagAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+
+@admin.register(HashtagInsight)
+class HashtagInsightAdmin(admin.ModelAdmin):
+    list_display = ('get_hashtag_name', 'get_post_info', 'get_post_date', 'count')
+    search_fields = ('hashtag__name', 'post__instagram_id')
+    list_filter = ('post__publish_date', 'hashtag')
+    ordering = ('-post__publish_date', '-count')
+
+    def get_hashtag_name(self, obj):
+        return f"#{obj.hashtag.name}"
+    get_hashtag_name.short_description = 'Hashtag'
+    get_hashtag_name.admin_order_field = 'hashtag__name'
+
+    def get_post_info(self, obj):
+        post_admin_url = reverse('admin:instagram_instagrampost_change', args=[obj.post.pk])
+        return format_html('<a href="{}">{}</a>', post_admin_url, str(obj.post))
+    get_post_info.short_description = 'Objava'
+    get_post_info.admin_order_field = 'post__instagram_id'
+
+    def get_post_date(self, obj):
+        return obj.post.publish_date
+    get_post_date.short_description = 'Datum objave'
+    get_post_date.admin_order_field = 'post__publish_date'
+
+    # Make this view read-only
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+@admin.register(Impression)
+class ImpressionAdmin(admin.ModelAdmin):
+    list_display = ('post', 'name', 'value')
+    list_filter = ('name', 'post__publish_date')
+    search_fields = ('post__instagram_id', 'name')
+    readonly_fields = ('post', 'name', 'value')
+    ordering = ('-post__publish_date', '-value')
 
     def has_add_permission(self, request):
         return False
