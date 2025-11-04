@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dodaj Tekstove</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 2em; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; }
+        textarea { width: 100%; height: 400px; font-size: 1rem; padding: 10px; box-sizing: border-box; }
+        button { margin-top: 1em; padding: 0.75em 1.5em; font-size: 1rem; cursor: pointer; }
+        .success { color: #28a745; background-color: #e9f7ea; border: 1px solid #a3d8b0; padding: 1em; border-radius: 5px; margin-bottom: 1em; }
+        pre { background-color: #f4f4f4; padding: 1em; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dodaj tekstove</h1>
+        <p>Zalijepite sadržaj u polje ispod. Svaki zapis mora biti odvojen praznim redom i u formatu:</p>
+        <pre><code>Naslov (Engleski naslov)
+Koncept: Kratki sadržaj</code></pre>
+
+        {% if success_message %}
+            <p class="success">{{ success_message }}</p>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <label for="raw_text">Sadržaj za parsiranje:</label>
+            <textarea id="raw_text" name="raw_text" placeholder="Zalijepite tekst ovdje..."></textarea>
+            <br>
+            <button type="submit">Dodaj zapise</button>
+        </form>
+    </div>
+</body>
+</html>
