@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF--8">
+    <title>Customer Details</title>
+     <style>
+        body { font-family: sans-serif; line-height: 1.6; }
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        h1 { border-bottom: 2px solid #f2f2f2; padding-bottom: 10px; }
+        p strong { display: inline-block; width: 150px; }
+        .actions a { display: inline-block; padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px; }
+        .actions a.edit { background-color: #ffc107; }
+        .actions a.delete { background-color: #dc3545; }
+        .actions a.back { background-color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ customer }}</h1>
+        <p><strong>Company:</strong> {{ customer.company|default:"N/A" }}</p>
+        <p><strong>Name:</strong> {{ customer.name }}</p>
+        <p><strong>Surname:</strong> {{ customer.surname }}</p>
+        <p><strong>Email:</strong> {{ customer.email }}</p>
+        <p><strong>Phone:</strong> {{ customer.phone|default:"N/A" }}</p>
+        <p><strong>Address:</strong> {{ customer.address|default:"N/A" }}</p>
+        <p><strong>City:</strong> {{ customer.city|default:"N/A" }}</p>
+        <p><strong>Country:</strong> {{ customer.country|default:"N/A" }}</p>
+        <p><strong>VAT Number:</strong> {{ customer.vat|default:"N/A" }}</p>
+        <p><strong>Additional Data:</strong></p>
+        <pre>{{ customer.additional_data|default:"N/A" }}</pre>
+
+        <div class="actions">
+            <a href="{% url 'customer:customer-list' %}" class="back">Back to List</a>
+            <a href="{% url 'customer:customer-update' customer.pk %}" class="edit">Edit</a>
+            <a href="{% url 'customer:customer-delete' customer.pk %}" class="delete">Delete</a>
+        </div>
+    </div>
+</body>
+</html>
