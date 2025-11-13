@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% if object %}Edit Booking{% else %}Create Booking{% endif %}</title>
+</head>
+<body>
+    <h1>{% if object %}Edit Booking{% else %}Create Booking{% endif %}</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Save</button>
+    </form>
+    <br>
+    <a href="{% url 'booking_list' %}">Cancel</a>
+</body>
+</html>
