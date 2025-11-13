@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
-
 # import settings.settings as custom_settings
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -47,7 +46,7 @@ INSTALLED_APPS = [
     'instagram',
     'fblinkapi',
     'text',
-    # 'instagramapi',
+    'customer'
 ]
 
 MIDDLEWARE = [
