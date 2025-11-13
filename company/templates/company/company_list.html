@@ -1,0 +1,37 @@
+{% extends "company/base.html" %}
+
+{% block content %}
+    <div class="header">
+        <h1>Companies</h1>
+        <a href="{% url 'company_create' %}" class="btn btn-primary">Add New Company</a>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Surname</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for company in companies %}
+            <tr>
+                <td><a href="{% url 'company_detail' company.pk %}">{{ company.name }}</a></td>
+                <td>{{ company.surname|default_if_none:"" }}</td>
+                <td>{{ company.email }}</td>
+                <td>{{ company.phone|default_if_none:"" }}</td>
+                <td class="actions">
+                    <a href="{% url 'company_update' company.pk %}">Edit</a>
+                    <a href="{% url 'company_delete' company.pk %}">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">No companies found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

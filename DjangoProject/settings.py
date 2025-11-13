@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     'instagram',
     'fblinkapi',
     'text',
-    'customer'
+    'customer',
+    'company',
 ]
 
 MIDDLEWARE = [

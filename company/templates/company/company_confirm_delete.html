@@ -1,0 +1,11 @@
+{% extends "company/base.html" %}
+
+{% block content %}
+    <h1>Delete Company</h1>
+    <p>Are you sure you want to delete "{{ object.name }} {{ object.surname|default_if_none:"" }}"?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Confirm Delete</button>
+        <a href="{% url 'company_detail' object.pk %}" class="btn btn-secondary">Cancel</a>
+    </form>
+{% endblock %}
