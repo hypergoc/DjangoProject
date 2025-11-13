@@ -20,7 +20,7 @@ class Setting(models.Model):
     )
 
     def __str__(self):
-        return self.path
+        return self.value
 
     class Meta:
         verbose_name = "Postavka"

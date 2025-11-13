@@ -1,0 +1,50 @@
+{
+  'plainId': 302192488,
+  'miniProfile': {
+    'memorialized': False,
+    'firstName': 'Goran',
+    'lastName': 'Loncar',
+    'dashEntityUrn': 'urn:li:fsd_profile:ACoAABIDF2gBLCGXrN914nr-_X8jYIZFM71TA3I',
+    'occupation': 'Magento Developer @ xITe | Member of Mensa',
+    'objectUrn': 'urn:li:member:302192488',
+    'entityUrn': 'urn:li:fs_miniProfile:ACoAABIDF2gBLCGXrN914nr-_X8jYIZFM71TA3I',
+    '$anti_abuse_metadata': {
+      '$anti_abuse_uuid': 'de287ad6-0af9-4b39-9ef7-67ca8051a983'
+    },
+    'publicIdentifier': 'goran-loncar-ab425385',
+    'picture': {
+      'com.linkedin.common.VectorImage': {
+        'artifacts': [
+          {
+            'width': 100,
+            'fileIdentifyingUrlPathSegment': '100_100/profile-displayphoto-shrink_100_100/0/1728039463017?e=1763596800&v=beta&t=YckwStXnkIp7NwapMrz7EeTh9B24VebofpTCMi4dZd8',
+            'expiresAt': 1763596800000,
+            'height': 100
+          },
+          {
+            'width': 200,
+            'fileIdentifyingUrlPathSegment': '200_200/profile-displayphoto-shrink_200_200/0/1728039463017?e=1763596800&v=beta&t=bFlt3b5iWp_HYxcLmFkFb3Li8WrtVGIkqg_WEx2cysU',
+            'expiresAt': 1763596800000,
+            'height': 200
+          },
+          {
+            'width': 400,
+            'fileIdentifyingUrlPathSegment': '400_400/profile-displayphoto-shrink_400_400/0/1728039463017?e=1763596800&v=beta&t=0MfCp83d3Y4eGYbn-J6iMhFX2i01ERJ-ak0CxGXxzio',
+            'expiresAt': 1763596800000,
+            'height': 400
+          },
+          {
+            'width': 800,
+            'fileIdentifyingUrlPathSegment': '800_800/profile-displayphoto-shrink_800_800/0/1728039463046?e=1763596800&v=beta&t=JygXTTPuZOTO1PjVukXRihHM8qxh5zbQoBm2PdrACgE',
+            'expiresAt': 1763596800000,
+            'height': 800
+          }
+        ],
+        'rootUrl': 'https://media.licdn.com/dms/image/v2/D4D03AQFrIgCixqvRrw/profile-displayphoto-shrink_'
+      }
+    },
+    'trackingId': 'nVHmIVZmQ7WDN4LuHIT4yg=='
+  },
+  'publicContactInfo': {},
+  'premiumSubscriber': False
+}

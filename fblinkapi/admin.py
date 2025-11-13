@@ -5,6 +5,7 @@ from django.utils.html import format_html
 # Register your models here.
 class PostAdmin(admin.ModelAdmin):
     list_display = ('title', 'status', 'image_tag', 'published_at')
+    readonly_fields = ('image_tag',)
 
     def image_tag(self, obj):
         if obj.image:
