@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'text',
     'customer',
     'company',
+    'apartman',
 ]
 
 MIDDLEWARE = [

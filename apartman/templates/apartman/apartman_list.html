@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Apartments</title>
+</head>
+<body>
+    <h1>Apartment List</h1>
+    <a href="{% url 'apartman_create' %}">Add New Apartment</a>
+    <ul>
+        {% for apartman in apartmani %}
+            <li>
+                <a href="{% url 'apartman_detail' apartman.pk %}">{{ apartman.naziv }}</a> ({{ apartman.company.name }})
+                | <a href="{% url 'apartman_update' apartman.pk %}">Edit</a>
+                | <a href="{% url 'apartman_delete' apartman.pk %}">Delete</a>
+            </li>
+        {% empty %}
+            <li>No apartments found.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
