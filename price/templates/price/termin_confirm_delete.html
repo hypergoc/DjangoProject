@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Potvrda brisanja</title>
+</head>
+<body>
+    <h1>Obriši Termin</h1>
+    <p>Da li ste sigurni da želite obrisati termin: "{{ object }}"?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit">Potvrdi brisanje</button>
+        <a href="{% url 'termin_detail' object.pk %}">Otkaži</a>
+    </form>
+</body>
+</html>

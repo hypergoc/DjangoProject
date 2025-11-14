@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Detalji Termina</title>
+</head>
+<body>
+    <h1>{{ termin.apartman.naziv }}</h1>
+    <p><strong>Apartman:</strong> {{ termin.apartman }}</p>
+    <p><strong>Od:</strong> {{ termin.date_from }}</p>
+    <p><strong>Do:</strong> {{ termin.date_to }}</p>
+
+    <br>
+    <a href="{% url 'termin_list' %}">Nazad na listu</a>
+    <a href="{% url 'termin_update' termin.pk %}">Uredi</a>
+    <a href="{% url 'termin_delete' termin.pk %}">Obriši</a>
+</body>
+</html>

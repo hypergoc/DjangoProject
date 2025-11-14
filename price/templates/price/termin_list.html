@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Termini</title>
+</head>
+<body>
+    <h1>Lista Termina</h1>
+    <a href="{% url 'termin_create' %}">Dodaj Novi Termin</a>
+    <ul>
+        {% for termin in termini %}
+            <li>
+                <a href="{% url 'termin_detail' termin.pk %}">{{ termin }}</a>
+                | <a href="{% url 'termin_update' termin.pk %}">Uredi</a>
+                | <a href="{% url 'termin_delete' termin.pk %}">Obriši</a>
+            </li>
+        {% empty %}
+            <li>Nema dostupnih termina.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
