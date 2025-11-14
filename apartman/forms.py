@@ -4,4 +4,4 @@ from .models import Apartman
 class ApartmanForm(forms.ModelForm):
     class Meta:
         model = Apartman
-        fields = ['naziv', 'company', 'size', 'opis', 'additional_content']
+        fields = ['naziv', 'company', 'size', 'capacity', 'opis', 'additional_content']
