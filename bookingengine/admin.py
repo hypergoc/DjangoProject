@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Booking
+from price.models import Termin
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
@@ -19,9 +20,9 @@ class BookingAdmin(admin.ModelAdmin):
     def get_booking_price(self, obj):
 
 
-        price_entry = Termin.objects.filter(apartman=obj, date_from__lte = today, date_to__gte=today).first()
+        price_entry = Termin.objects.filter(apartman=obj, date_from__lte = obj.date_from, date_to__gte=obj.date).first()
         if price_entry:
             return price_entry.value
         return "N/A"
 
-    get_todays_price.short_description = 'Cijena za danas'
+    get_booking_price.short_description = 'Cijena za danas'

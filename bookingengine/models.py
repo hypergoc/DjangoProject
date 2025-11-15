@@ -1,9 +1,9 @@
 from django.db import models
+from django.core.exceptions import ValidationError
+from datetime import timedelta
 from apartman.models import Apartman
-# Assuming a 'customer' app with a 'Customer' model exists.
-# If not, you would need to create it.
-# Example: from django.contrib.auth.models import User as Customer
 from customer.models import Customer
+from price.models import Termin
 
 
 class Booking(models.Model):
@@ -15,6 +15,41 @@ class Booking(models.Model):
     approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    price = models.DecimalField(default=0,  max_digits=10, decimal_places=2, verbose_name="Ukupna cijena bookinga")
+
+    def save(self, *args, **kwargs):
+        """
+        Ova metoda se poziva SVAKI put kad stisneš 'Save'.
+        Prije nego što stvarno spremi, mi ćemo napraviti naš izračun.
+        """
+
+        if self.date_from and self.date_to and self.price == 0:
+            total_price = 0
+            # Kreiramo listu svih datuma unutar bookinga (bez zadnjeg dana)
+            current_date = self.date_from
+            while current_date < self.date_to:
+                # Za SVAKI dan u booking-u, pronalazimo odgovarajući Termin (i cijenu)
+                termin_za_dan = Termin.objects.filter(
+                    apartman=self.apartman,
+                    date_from__lte=current_date,
+                    date_to__gt=current_date  # Koristimo __gt umjesto __gte za kraj, jer noćenje završava ujutro
+                ).first()
+
+                if termin_za_dan:
+                    total_price += termin_za_dan.value
+                else:
+                    # Ako za neki dan ne postoji cijena, digni grešku!
+                    raise ValidationError(
+                        f"Cijena za datum {current_date} nije definirana. Booking se ne može stvoriti.")
+
+                current_date += timedelta(days=1)
+
+            # Postavljamo izračunatu cijenu na objekt koji se sprema
+            self.price = total_price
+
+        # Na kraju, POZIVAMO ORIGINALNU save metodu da odradi spremanje u bazu.
+        # Ovo je KRITIČNO VAŽNO.
+        super(Booking, self).save(*args, **kwargs)
 
     def __str__(self):
         return f"Booking for {self.apartman.naziv} by {self.customer} from {self.date_from} to {self.date_to}"
