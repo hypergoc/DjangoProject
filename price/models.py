@@ -11,6 +11,6 @@ class Termin(models.Model):
         return f"{self.apartman.naziv} ({self.date_from.strftime('%d.%m.%Y')} - {self.date_to.strftime('%d.%m.%Y')}) - {self.value}"
 
     class Meta:
-        verbose_name = "Termin"
-        verbose_name_plural = "Termini"
+        verbose_name = "Cijena"
+        verbose_name_plural = "Cijene"
         ordering = ['date_from']
