@@ -6,6 +6,18 @@ from .models import Apartman
 from price.models import Termin
 from datetime import date
 
+class TerminInline(admin.TabularInline):
+    """
+    Ova klasa govori Djangu: 'Hej, kad prikazuješ Apartman,
+    pokaži mi i tablicu za unos/editiranje Termina.'
+    """
+    model = Termin
+    # Polja koja želiš vidjeti i editirati u tablici
+    fields = ('date_from', 'date_to', 'value')
+    # 'extra = 1' ti daje jedan prazan red za unos novog termina
+    extra = 1
+    ordering = ('date_from',)
+
 @admin.register(Apartman)
 class ApartmanAdmin(admin.ModelAdmin):
     list_display = ('naziv', 'company', 'size', 'capacity', 'get_todays_price')
@@ -13,6 +25,7 @@ class ApartmanAdmin(admin.ModelAdmin):
     list_filter = ('company',)
     # raw_id_fields is useful for ForeignKey fields with many options
     raw_id_fields = ('company',)
+    inlines = [TerminInline]
 
     def get_todays_price(self, obj):
         """

@@ -15,3 +15,13 @@ class BookingAdmin(admin.ModelAdmin):
     def approve_bookings(self, request, queryset):
         queryset.update(approved=True)
     approve_bookings.short_description = "Approve selected bookings"
+
+    def get_booking_price(self, obj):
+
+
+        price_entry = Termin.objects.filter(apartman=obj, date_from__lte = today, date_to__gte=today).first()
+        if price_entry:
+            return price_entry.value
+        return "N/A"
+
+    get_todays_price.short_description = 'Cijena za danas'

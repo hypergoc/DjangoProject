@@ -1,5 +1,4 @@
 from django.db import models
-# Assuming the app from the previous request is named 'company'
 from company.models import Company
 
 class Apartman(models.Model):
