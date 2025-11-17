@@ -7,6 +7,7 @@ from apartman.models import Apartman
 from .models import Booking, BookingSearch
 from .forms import AvailabilityForm
 from datetime import timedelta
+from django.http import JsonResponse
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
@@ -37,6 +38,7 @@ class BookingAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         custom_urls = [
             path('search/', self.admin_site.admin_view(self.search_view), name='booking_search'),
+            path('rented/<int:apartman_id>/', self.admin_site.admin_view(self.rented_api), name='calendar_rented'),
         ]
         return custom_urls + urls
 
@@ -129,6 +131,23 @@ class BookingAdmin(admin.ModelAdmin):
         # Na kraju, pozivamo originalnu metodu da odradi svoj posao, ali
         # joj prosljeđujemo naš obogaćeni kontekst!
         return super().changelist_view(request, extra_context=extra_context)
+
+    def rented_api(self, request, apartman_id):
+        try:
+            # bookings = Booking.objects.filter(apartman_id=apartman_id, approved=True)
+            bookings = Booking.objects.filter(apartman_id=apartman_id,)
+
+            formatted_events = []
+            for booking in bookings:
+                formatted_events.append({
+                    'start': booking.date_from,
+                    'end': booking.date_to,
+                    'color': '#dc3545',
+                    'display': 'background'
+                })
+            return JsonResponse(formatted_events, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
 @admin.register(BookingSearch)
 class BookingSearchAdmin(admin.ModelAdmin):
