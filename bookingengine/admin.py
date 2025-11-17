@@ -68,6 +68,10 @@ class BookingAdmin(admin.ModelAdmin):
                 capacity__gte=capacity
             )
             context['apartmani'] = available_apartments
+            context['date_from'] = date_from
+            context['date_to'] = date_to
+            context['capacity'] = capacity
+
 
         return render(request, 'admin/bookingengine/search.html', context)
 

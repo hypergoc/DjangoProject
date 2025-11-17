@@ -17,7 +17,7 @@
         <ul>
         {% for apartman in apartmani %}
             <li>
-                <a href="{% url 'admin:bookingengine_booking_add' %}">{{ apartman.naziv }}</a>
+                <a href="{% url 'admin:bookingengine_booking_add' %}?apartman={{ apartman.id }}&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to | date:'Y-m-d'}}&visitors_count={{ capacity }}">{{ apartman.naziv }}</a>
                 (Kapacitet: {{ apartman.capacity }})
             </li>
         {% endfor %}
