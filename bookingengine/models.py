@@ -18,14 +18,8 @@ class Booking(models.Model):
     price = models.DecimalField(default=0,  max_digits=10, decimal_places=2, verbose_name="Ukupna cijena bookinga")
 
     def save(self, *args, **kwargs):
-        """
-        Ova metoda se poziva SVAKI put kad stisneš 'Save'.
-        Prije nego što stvarno spremi, mi ćemo napraviti naš izračun.
-        """
-
         if self.date_from and self.date_to and self.price == 0:
             total_price = 0
-            # Kreiramo listu svih datuma unutar bookinga (bez zadnjeg dana)
             current_date = self.date_from
             while current_date < self.date_to:
                 # Za SVAKI dan u booking-u, pronalazimo odgovarajući Termin (i cijenu)

@@ -8,6 +8,7 @@ from .models import Booking, BookingSearch
 from .forms import AvailabilityForm
 from datetime import timedelta
 from django.http import JsonResponse
+from datetime import datetime
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
@@ -19,6 +20,38 @@ class BookingAdmin(admin.ModelAdmin):
     raw_id_fields = ('apartman', 'customer')
 
     actions = ['approve_bookings']
+
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        apartman_id = request.GET.get('apartman')
+        date_from_str = request.GET.get('date_from')
+        date_to_str = request.GET.get('date_to')
+
+        # Ovdje samo prenosimo podatke
+        initial['apartman'] = apartman_id
+        initial['date_from'] = date_from_str
+        initial['date_to'] = date_to_str
+        initial['visitors_count'] = request.GET.get('visitors_count')
+
+        # << NOVA MAGIJA >>
+        # Ako imamo SVE podatke, pozovimo našu centralnu logiku!
+        if apartman_id and date_from_str and date_to_str:
+            try:
+                from apartman.models import Apartman
+                apartman = Apartman.objects.get(pk=apartman_id)
+                date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
+                date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
+
+                # POZIVAMO ISTO ORUŽJE S DRUGOG MJESTA!
+                initial['price'] = Booking.objects.calculate_price_for_period(
+                    apartman, date_from, date_to
+                )
+            except (ValueError, Apartman.DoesNotExist, Exception):
+                # Ako ne uspije (npr. ne nađe cijenu), samo nemoj postaviti initial cijenu
+                # Save metoda će svejedno dignuti grešku ako je potrebno
+                pass
+
+        return initial
 
     def approve_bookings(self, request, queryset):
         queryset.update(approved=True)
@@ -98,19 +131,12 @@ class BookingAdmin(admin.ModelAdmin):
         return render(request, 'admin/bookingengine/search.html', context)
 
     def changelist_view(self, request, extra_context=None):
-        """
-        Pregazimo defaultni changelist view da bismo dodali našu logiku.
-        """
-        # Inicijaliziramo formu s podacima iz GET requesta
         search_form = AvailabilityForm(request.GET or None)
-
-        # Pripremamo defaultni kontekst, dodajemo mu našu formu
         extra_context = extra_context or {}
         extra_context['search_form'] = search_form
         extra_context['search_results_triggered'] = False
 
         if search_form.is_valid():
-            # Ako je forma ispravna, radi istu logiku kao i prije...
             extra_context['search_results_triggered'] = True
             date_from = search_form.cleaned_data['date_from']
             date_to = search_form.cleaned_data['date_to']
@@ -128,9 +154,9 @@ class BookingAdmin(admin.ModelAdmin):
             )
             extra_context['available_apartments'] = available_apartments
 
-        # Na kraju, pozivamo originalnu metodu da odradi svoj posao, ali
-        # joj prosljeđujemo naš obogaćeni kontekst!
         return super().changelist_view(request, extra_context=extra_context)
+
+
 
     def rented_api(self, request, apartman_id):
         try:
