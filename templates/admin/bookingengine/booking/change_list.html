@@ -1,0 +1,41 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block content_title %}
+    <h1>{{ cl.opts.verbose_name_plural|capfirst }} & Pretraga Slobodnih Termina</h1>
+{% endblock %}
+
+{% block result_list %}
+    <!-- Ovdje počinje naša magija: Ubacujemo formu iznad liste -->
+    <div style="border: 1px solid #ccc; padding: 15px; margin: 15px 0; background: #f9f9f9; border-radius: 5px;">
+        <h3>Pretraga Slobodnih Apartmana</h3>
+        <form id="availability-form" method="get" action="">
+            {{ search_form.as_p }}
+            <button type="submit">Pretraži Dostupne Apartmane</button>
+            <!-- Gumb za resetiranje filtera -->
+            {% if request.GET.date_from %}
+                <a href="{% url 'admin:bookingengine_booking_changelist' %}" class="button">Resetiraj Pretragu</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Prikazujemo rezultate samo ako je pretraga aktivirana -->
+    {% if search_results_triggered %}
+        <h3>Rezultati Pretrage:</h3>
+        {% if available_apartments %}
+            <ul>
+                {% for apartman in available_apartments %}
+                <li>
+                    <a href="{% url 'admin:apartman_apartman_change' apartman.pk %}">{{ apartman.naziv }}</a>
+                    (Kapacitet: {{ apartman.capacity }})
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Nema dostupnih apartmana za tražene kriterije.</p>
+        {% endif %}
+    {% else %}
+        <!-- Ovo je originalni Djangov prikaz liste, ako pretraga nije aktivna -->
+        {{ block.super }}
+    {% endif %}
+{% endblock %}

@@ -58,3 +58,11 @@ class Booking(models.Model):
         verbose_name = "Booking"
         verbose_name_plural = "Bookings"
         ordering = ['-date_from']
+
+
+class BookingSearch(Booking):
+    class Meta:
+        proxy = True
+        # verbose_name je ime koje će se prikazati u admin panelu.
+        verbose_name = 'Search'
+        verbose_name_plural = 'Search'

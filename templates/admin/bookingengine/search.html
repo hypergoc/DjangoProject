@@ -1,0 +1,30 @@
+{% extends "admin/base_site.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<form method="get" action="">
+    {{ form.as_p }}
+    <button type="submit">Pretraži</button>
+</form>
+
+<hr>
+
+{% if results_triggered %}
+    <h2>Dostupni Apartmani:</h2>
+    {% if apartmani %}
+        <ul>
+        {% for apartman in apartmani %}
+            <li>
+                <a href="{% url 'admin:bookingengine_booking_add' %}">{{ apartman.naziv }}</a>
+                (Kapacitet: {{ apartman.capacity }})
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Nema dostupnih apartmana za tražene kriterije.</p>
+    {% endif %}
+{% endif %}
+
+{% endblock %}
