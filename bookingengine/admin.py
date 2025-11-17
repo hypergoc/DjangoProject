@@ -6,6 +6,7 @@ from price.models import Termin
 from apartman.models import Apartman
 from .models import Booking, BookingSearch
 from .forms import AvailabilityForm
+from datetime import timedelta
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
@@ -41,7 +42,6 @@ class BookingAdmin(admin.ModelAdmin):
 
     # << OVO JE MOZAK NAŠE NOVE STRANICE >>
     def search_view(self, request):
-        """Ovaj view kontrolira našu custom admin stranicu."""
         form = AvailabilityForm(request.GET or None)
         context = dict(
             # Ovo su varijable potrebne da Django Admin prikaže stranicu ispravno
@@ -56,23 +56,43 @@ class BookingAdmin(admin.ModelAdmin):
             date_to = form.cleaned_data['date_to']
             capacity = form.cleaned_data['capacity']
 
-            # Isti onaj sveti query od prije
-            overlapping_bookings = Booking.objects.filter(
+            # ... (ista logika za overlapping_bookings i available_apartments) ...
+            overlapping_bookings_ids = Booking.objects.filter(
                 date_from__lt=date_to,
                 date_to__gt=date_from
             ).values_list('apartman_id', flat=True)
 
             available_apartments = Apartman.objects.exclude(
-                pk__in=overlapping_bookings
-            ).filter(
-                capacity__gte=capacity
+                pk__in=overlapping_bookings_ids
             )
-            context['apartmani'] = available_apartments
+            if capacity:
+                available_apartments = available_apartments.filter(capacity__gte=capacity)
+
+            # << OVDJE JE NOVA MAGIJA >>
+            if available_apartments.exists():
+                # Ako ima slobodnih, prikaži ih
+                context['apartmani'] = available_apartments
+            else:
+                # AKO NEMA, pokreni Plan B!
+                context['showing_conflicts'] = True
+
+                # Definiramo širi prozor za prikaz zauzeća
+                start_window = date_from - timedelta(days=15)
+                end_window = date_from + timedelta(days=15)
+
+                # Dohvaćamo SVE bookinge u tom širem prozoru
+                conflicting_bookings = Booking.objects.filter(
+                    date_from__lt=end_window,
+                    date_to__gt=start_window
+                ).order_by('date_from') # Sortiramo da bude preglednije
+
+                context['conflicting_bookings'] = conflicting_bookings
+                context['search_window_start'] = start_window
+                context['search_window_end'] = end_window
+
             context['date_from'] = date_from
             context['date_to'] = date_to
             context['capacity'] = capacity
-
-
         return render(request, 'admin/bookingengine/search.html', context)
 
     def changelist_view(self, request, extra_context=None):

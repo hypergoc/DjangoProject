@@ -12,19 +12,54 @@
 <hr>
 
 {% if results_triggered %}
-    <h2>Dostupni Apartmani:</h2>
+
     {% if apartmani %}
+        <h2>Dostupni Apartmani:</h2>
         <ul>
         {% for apartman in apartmani %}
             <li>
-                <a href="{% url 'admin:bookingengine_booking_add' %}?apartman={{ apartman.id }}&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to | date:'Y-m-d'}}&visitors_count={{ capacity }}">{{ apartman.naziv }}</a>
-                (Kapacitet: {{ apartman.capacity }})
+                <a href="{% url 'admin:bookingengine_booking_add' %}?apartman={{ apartman.id }}&date_from={{ form.cleaned_data.date_from|date:'Y-m-d' }}&date_to={{ form.cleaned_data.date_to|date:'Y-m-d' }}&visitors_count={{ form.cleaned_data.capacity }}">
+                    {{ apartman.naziv }}
+                </a> (Kapacitet: {{ apartman.capacity }})
             </li>
         {% endfor %}
         </ul>
+
+    {% elif showing_conflicts %}
+        <!-- << OVDJE JE NAŠ "ALI..." ODGOVOR >> -->
+        <h2>Nema Potpuno Slobodnih Apartmana.</h2>
+        <p>Prikazujem ti sve zauzete termine u periodu od {{ search_window_start|date:"d.m.Y." }} do {{ search_window_end|date:"d.m.Y." }} kako bi lakše pronašao "rupu":</p>
+
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #eee;">
+                    <th style="padding: 8px; border: 1px solid #ccc;">Apartman</th>
+                    <th style="padding: 8px; border: 1px solid #ccc;">Zauzeto od</th>
+                    <th style="padding: 8px; border: 1px solid #ccc;">Zauzeto do</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for booking in conflicting_bookings %}
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 8px;">
+                        <a href="{% url 'admin:apartman_apartman_change' booking.apartman.pk %}">
+                            {{ booking.apartman.naziv }}
+                        </a>
+                    </td>
+                    <td style="padding: 8px;">{{ booking.date_from|date:"d.m.Y." }}</td>
+                    <td style="padding: 8px;">{{ booking.date_to|date:"d.m.Y." }}</td>
+                </tr>
+            {% empty %}
+                <p>Nema nijednog zauzetog termina u zadanom periodu +/- 15 dana. Svi apartmani su slobodni!</p>
+            {% endfor %}
+            </tbody>
+        </table>
+        <!-- << KRAJ "ALI..." ODGOVORA >> -->
+
     {% else %}
         <p>Nema dostupnih apartmana za tražene kriterije.</p>
     {% endif %}
+
 {% endif %}
 
 {% endblock %}
