@@ -8,6 +8,7 @@ class Apartman(models.Model):
     capacity = models.PositiveIntegerField(default=1, help_text="Maximum number of guests")
     opis = models.TextField(blank=True, null=True)
     additional_content = models.TextField(blank=True, null=True)
+    default_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Default price in cents.", default=0)
 
     def __str__(self):
         return self.naziv

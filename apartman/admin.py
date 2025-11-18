@@ -30,7 +30,9 @@ class ApartmanAdmin(admin.ModelAdmin):
     def get_todays_price(self, obj):
         today = date.today()
         price_entry = Termin.objects.filter(apartman=obj, date_from__lte = today, date_to__gte=today).first()
-        if price_entry:
+        if price_entry and price_entry.value > 0:
             return price_entry.value
-        return "N/A"
+        else:
+            return obj.default_price
+
     get_todays_price.short_description = 'Cijena za danas'
