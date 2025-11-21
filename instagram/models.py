@@ -98,3 +98,11 @@ class AccountInsight(models.Model):
         
     def __str__(self):
         return f"Statistika računa @ {self.fetched_at.strftime('%Y-%m-%d %H:%M')}"
+
+class Following(models.Model):
+    instagram_id = models.TextField(blank=True, null=True)
+    username = models.TextField(blank=True, null=True)
+    fullname = models.TextField(blank=True, null=True)
+    type = models.TextField(blank=True, null=True)
+    should_unfollow = models.BooleanField(default=False, verbose_name="unfollow")
+    should_follow = models.BooleanField(default=False, verbose_name="Ofollow")

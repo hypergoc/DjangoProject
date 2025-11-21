@@ -65,9 +65,9 @@ def generate_imagen_image(content_gen: ContentGeneration):
         config=types.GenerateImagesConfig(
             number_of_images=1,
             include_rai_reason=True,
-            aspect_ratio="1:1",
+            # aspect_ratio="1:1",
             # aspect_ratio="3:4",
-            # aspect_ratio="9:16",
+            aspect_ratio="9:16",
         ),
         prompt=content_gen.prompt
     )
