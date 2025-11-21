@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib import messages
 from django.core.exceptions import ValidationError
 from datetime import timedelta
 from apartman.models import Apartman
@@ -32,6 +33,10 @@ class Booking(models.Model):
                 if termin_za_dan:
                     total_price += termin_za_dan.value
                 else:
+                    messages.error(request, f"⚠️ Nije moguće izračunati cijenu: {e.message}")
+
+                    # 3. Nastavljamo dalje kao da se ništa nije dogodilo (forma se otvara, ali bez cijene)
+                    pass
                     # Ako za neki dan ne postoji cijena, digni grešku!
                     raise ValidationError(
                         f"Cijena za datum {current_date} nije definirana. Booking se ne može stvoriti.")

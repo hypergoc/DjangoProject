@@ -9,6 +9,7 @@ from .forms import AvailabilityForm
 from datetime import timedelta
 from django.http import JsonResponse
 from datetime import datetime
+from .managers import BookingManager
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
@@ -33,19 +34,17 @@ class BookingAdmin(admin.ModelAdmin):
         initial['date_to'] = date_to_str
         initial['visitors_count'] = request.GET.get('visitors_count')
 
+        print(initial)
+
         # << NOVA MAGIJA >>
         # Ako imamo SVE podatke, pozovimo našu centralnu logiku!
         if apartman_id and date_from_str and date_to_str:
             try:
-                from apartman.models import Apartman
                 apartman = Apartman.objects.get(pk=apartman_id)
                 date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
                 date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
-
-                # POZIVAMO ISTO ORUŽJE S DRUGOG MJESTA!
-                initial['price'] = Booking.objects.calculate_price_for_period(
-                    apartman, date_from, date_to
-                )
+                price = BookingManager.calculate_price_for_period(apartman=apartman, date_from=date_from, date_to=date_to)
+                initial['price'] = price
             except (ValueError, Apartman.DoesNotExist, Exception):
                 # Ako ne uspije (npr. ne nađe cijenu), samo nemoj postaviti initial cijenu
                 # Save metoda će svejedno dignuti grešku ako je potrebno

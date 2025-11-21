@@ -6,10 +6,6 @@ from datetime import timedelta
 
 class BookingManager(models.Manager):
     def calculate_price_for_period(self, apartman, date_from, date_to):
-        """
-        OVO JE MOTOR. Naša sveta, reusable metoda.
-        Prima apartman, početni i krajnji datum, vraća izračunatu cijenu ili diže grešku.
-        """
         if not all([apartman, date_from, date_to]):
             return 0  # Vraća 0 ako podaci nisu kompletni
 
