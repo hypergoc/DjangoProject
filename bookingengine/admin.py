@@ -12,7 +12,7 @@ from datetime import datetime
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    list_display = ('apartman', 'customer', 'date_from', 'date_to', 'visitors_count', 'approved', 'created_at')
+    list_display = ('apartman', 'customer', 'date_from', 'date_to', 'visitors_count', 'approved', 'price')
     list_filter = ('approved', 'apartman')
     search_fields = ('apartman__naziv', 'customer__name', 'customer__email') # Adjust customer fields as needed
     date_hierarchy = 'date_from'
@@ -155,8 +155,6 @@ class BookingAdmin(admin.ModelAdmin):
             extra_context['available_apartments'] = available_apartments
 
         return super().changelist_view(request, extra_context=extra_context)
-
-
 
     def rented_api(self, request, apartman_id):
         try:
