@@ -16,7 +16,7 @@ class BookingManager(models.Manager):
                 apartman=apartman,
                 date_from__lte=current_date,
                 date_to__gt=current_date
-            ).first()
+            ).order_by('-id').first()
 
             if termin_za_dan:
                 total_price += termin_za_dan.value

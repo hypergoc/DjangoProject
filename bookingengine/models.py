@@ -5,6 +5,7 @@ from datetime import timedelta
 from apartman.models import Apartman
 from customer.models import Customer
 from price.models import Termin
+from .managers import BookingManager
 
 
 class Booking(models.Model):
@@ -17,6 +18,8 @@ class Booking(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     price = models.DecimalField(default=0,  max_digits=10, decimal_places=2, verbose_name="Ukupna cijena bookinga")
+
+    objects = BookingManager()
 
     def save(self, *args, **kwargs):
         if self.date_from and self.date_to and self.price == 0:

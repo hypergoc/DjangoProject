@@ -43,7 +43,7 @@ class BookingAdmin(admin.ModelAdmin):
                 apartman = Apartman.objects.get(pk=apartman_id)
                 date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
                 date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
-                price = BookingManager.calculate_price_for_period(apartman=apartman, date_from=date_from, date_to=date_to)
+                price = Booking.objects.calculate_price_for_period(apartman=apartman, date_from=date_from, date_to=date_to)
                 initial['price'] = price
             except (ValueError, Apartman.DoesNotExist, Exception):
                 # Ako ne uspije (npr. ne nađe cijenu), samo nemoj postaviti initial cijenu
