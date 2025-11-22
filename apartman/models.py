@@ -22,3 +22,6 @@ class Apartman(models.Model):
         self.capacity = basic + additional
         super().save(*args, **kwargs)
 
+    @property  # Decorator da se ponaša kao polje
+    def capacity_display(self):
+        return f"{self.capacity_basic} + {self.capacity_additional}"
