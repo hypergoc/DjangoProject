@@ -14,7 +14,7 @@ class Apartman(models.Model):
     default_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Default price in cents.", default=0)
 
     def __str__(self):
-        return self.naziv
+        return f"{self.naziv} ({self.capacity_basic} + {self.capacity_additional})"
 
     def save(self, *args, **kwargs):
         basic = self.capacity_basic or 0
