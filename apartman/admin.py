@@ -21,13 +21,15 @@ class BookingInline(admin.TabularInline):
 
 @admin.register(Apartman)
 class ApartmanAdmin(admin.ModelAdmin):
-    list_display = ('naziv', 'company', 'size', 'capacity', 'get_todays_price')
+    list_display = ('naziv', 'company', 'size', 'capacity_helper', 'get_todays_price')
     search_fields = ('naziv', 'company__name', 'opis')
     list_filter = ('company',)
     raw_id_fields = ('company',)
+    exclude = ('capacity',)
     inlines = [TerminInline, BookingInline]
 
     def get_todays_price(self, obj):
+        #implement additional capacity
         today = date.today()
         price_entry = Termin.objects.filter(apartman=obj, date_from__lte = today, date_to__gte=today).first()
         if price_entry and price_entry.value > 0:
@@ -36,3 +38,8 @@ class ApartmanAdmin(admin.ModelAdmin):
             return obj.default_price
 
     get_todays_price.short_description = 'Cijena za danas'
+
+    def capacity_helper(self, obj):
+        return f"{obj.capacity_basic} + {obj.capacity_additional}"
+
+    capacity_helper.short_description = 'Capacity'
