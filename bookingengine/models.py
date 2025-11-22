@@ -14,7 +14,7 @@ class Booking(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     discount_percent = models.DecimalField(verbose_name="Discount percent", decimal_places=2, max_digits=10, blank=True, null=True)
-    discount_amount = models.DecimalField(verbose_name="Discount percent", decimal_places=2, max_digits=10, blank=True, null=True)
+    discount_amount = models.DecimalField(verbose_name="Discount amount", decimal_places=2, max_digits=10, blank=True, null=True)
     price = models.DecimalField(default=0, max_digits=10, decimal_places=2, verbose_name="Ukupna cijena bookinga")
 
     # Spajamo Managera
