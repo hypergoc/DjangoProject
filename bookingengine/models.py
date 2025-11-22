@@ -1,12 +1,8 @@
 from django.db import models
-from django.contrib import messages
 from django.core.exceptions import ValidationError
-from datetime import timedelta
 from apartman.models import Apartman
 from customer.models import Customer
-from price.models import Termin
 from .managers import BookingManager
-
 
 class Booking(models.Model):
     apartman = models.ForeignKey(Apartman, on_delete=models.CASCADE, related_name='bookings')
@@ -17,40 +13,31 @@ class Booking(models.Model):
     approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    price = models.DecimalField(default=0,  max_digits=10, decimal_places=2, verbose_name="Ukupna cijena bookinga")
+    price = models.DecimalField(default=0, max_digits=10, decimal_places=2, verbose_name="Ukupna cijena bookinga")
 
+    # Spajamo Managera
     objects = BookingManager()
 
+    def clean(self):
+        # Validacija prije save-a. Ovdje provjeravamo je li period slobodan.
+        # (Osim ako je ovo postojeći booking koji nije mijenjao datume, ali to je detalj)
+        super().clean()
+        # Ovdje možeš dodati: if not Booking.objects.is_period_available(...)
+
     def save(self, *args, **kwargs):
-        if self.date_from and self.date_to and self.price == 0:
-            total_price = 0
-            current_date = self.date_from
-            while current_date < self.date_to:
-                # Za SVAKI dan u booking-u, pronalazimo odgovarajući Termin (i cijenu)
-                termin_za_dan = Termin.objects.filter(
-                    apartman=self.apartman,
-                    date_from__lte=current_date,
-                    date_to__gt=current_date  # Koristimo __gt umjesto __gte za kraj, jer noćenje završava ujutro
-                ).first()
-
-                if termin_za_dan:
-                    total_price += termin_za_dan.value
-                else:
-                    messages.error(request, f"⚠️ Nije moguće izračunati cijenu: {e.message}")
-
-                    # 3. Nastavljamo dalje kao da se ništa nije dogodilo (forma se otvara, ali bez cijene)
-                    pass
-                    # Ako za neki dan ne postoji cijena, digni grešku!
-                    raise ValidationError(
-                        f"Cijena za datum {current_date} nije definirana. Booking se ne može stvoriti.")
-
-                current_date += timedelta(days=1)
-
-            # Postavljamo izračunatu cijenu na objekt koji se sprema
-            self.price = total_price
+        # UVIJEK pokušaj izračunati cijenu prije spremanja.
+        # Manager će se pobrinuti za logiku.
+        if self.date_from and self.date_to:
+            try:
+                # Pozivamo našu centralnu logiku iz managera
+                # save=False jer ćemo spremiti odmah u liniji ispod (super().save)
+                calculated_price = Booking.objects.calculate_total_price(self, save=False)
+                self.price = calculated_price
+            except ValidationError as e:
+                # Propustamo grešku dalje. Admin će je prikazati na vrhu forme.
+                raise e
 
         # Na kraju, POZIVAMO ORIGINALNU save metodu da odradi spremanje u bazu.
-        # Ovo je KRITIČNO VAŽNO.
         super(Booking, self).save(*args, **kwargs)
 
     def __str__(self):
@@ -65,6 +52,5 @@ class Booking(models.Model):
 class BookingSearch(Booking):
     class Meta:
         proxy = True
-        # verbose_name je ime koje će se prikazati u admin panelu.
         verbose_name = 'Search'
         verbose_name_plural = 'Search'

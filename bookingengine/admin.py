@@ -2,24 +2,24 @@ from django.contrib import admin
 from django.urls import path, reverse
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
+from django.http import JsonResponse
+from datetime import timedelta, datetime
 from price.models import Termin
 from apartman.models import Apartman
 from .models import Booking, BookingSearch
 from .forms import AvailabilityForm
-from datetime import timedelta
-from django.http import JsonResponse
-from datetime import datetime
 from .managers import BookingManager
+
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    list_display = ('apartman', 'customer', 'date_from', 'date_to', 'capacity_display', 'visitors_count', 'approved', 'price')
+    list_display = ('apartman', 'customer', 'date_from', 'date_to', 'capacity_display', 'visitors_count', 'approved',
+                    'price')
     list_filter = ('approved', 'apartman')
-    search_fields = ('apartman__naziv', 'customer__name', 'customer__email') # Adjust customer fields as needed
+    search_fields = ('apartman__naziv', 'customer__name', 'customer__email')
     date_hierarchy = 'date_from'
     list_editable = ('approved',)
     raw_id_fields = ('apartman', 'customer')
-
     actions = ['approve_bookings']
 
     def capacity_display(self, obj):
@@ -32,39 +32,45 @@ class BookingAdmin(admin.ModelAdmin):
         apartman_id = request.GET.get('apartman')
         date_from_str = request.GET.get('date_from')
         date_to_str = request.GET.get('date_to')
+        visitors_count_str = request.GET.get('visitors_count')
 
-        # Ovdje samo prenosimo podatke
         initial['apartman'] = apartman_id
         initial['date_from'] = date_from_str
         initial['date_to'] = date_to_str
-        initial['visitors_count'] = request.GET.get('visitors_count')
+        initial['visitors_count'] = visitors_count_str
 
-        print(initial)
-
-        # << NOVA MAGIJA >>
-        # Ako imamo SVE podatke, pozovimo našu centralnu logiku!
         if apartman_id and date_from_str and date_to_str:
             try:
                 apartman = Apartman.objects.get(pk=apartman_id)
                 date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
                 date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
-                price = Booking.objects.calculate_price_for_period(apartman=apartman, date_from=date_from, date_to=date_to)
+                visitors_count = int(visitors_count_str) if visitors_count_str else 1
+
+                # Ovdje pozivamo preview metodu jer nemamo instancu bookinga
+                # Provjeri da li je imas u Manageru, ako ne, koristi calculate_base_stay_price
+                # ili dodaj logiku ovdje privremeno.
+                # Ovdje koristim pretpostavku da si dodao calculate_total_price_preview
+                price = Booking.objects.calculate_total_price_preview(
+                    apartman, date_from, date_to, visitors_count
+                )
                 initial['price'] = price
-            except (ValueError, Apartman.DoesNotExist, Exception):
-                # Ako ne uspije (npr. ne nađe cijenu), samo nemoj postaviti initial cijenu
-                # Save metoda će svejedno dignuti grešku ako je potrebno
+            except Exception as e:
+                print(f"Error calculating price in admin: {e}")
                 pass
 
         return initial
 
     def approve_bookings(self, request, queryset):
         queryset.update(approved=True)
+
     approve_bookings.short_description = "Approve selected bookings"
 
     def get_booking_price(self, obj):
-
-
-        price_entry = Termin.objects.filter(apartman=obj, date_from__lte = obj.date_from, date_to__gte=obj.date).first()
+        price_entry = Termin.objects.filter(
+            apartman=obj.apartman,
+            date_from__lte=obj.date_from,
+            date_to__gte=obj.date_to
+        ).first()
         if price_entry:
             return price_entry.value
         return "N/A"
@@ -79,14 +85,12 @@ class BookingAdmin(admin.ModelAdmin):
         ]
         return custom_urls + urls
 
-    # << OVO JE MOZAK NAŠE NOVE STRANICE >>
     def search_view(self, request):
         form = AvailabilityForm(request.GET or None)
         context = dict(
-            # Ovo su varijable potrebne da Django Admin prikaže stranicu ispravno
             self.admin_site.each_context(request),
             form=form,
-            results_triggered=False  # Zastavica da znamo je li pretraga pokrenuta
+            results_triggered=False
         )
 
         if form.is_valid():
@@ -95,7 +99,6 @@ class BookingAdmin(admin.ModelAdmin):
             date_to = form.cleaned_data['date_to']
             capacity = form.cleaned_data['capacity']
 
-            # ... (ista logika za overlapping_bookings i available_apartments) ...
             overlapping_bookings_ids = Booking.objects.filter(
                 date_from__lt=date_to,
                 date_to__gt=date_from
@@ -107,23 +110,17 @@ class BookingAdmin(admin.ModelAdmin):
             if capacity:
                 available_apartments = available_apartments.filter(capacity__gte=capacity)
 
-            # << OVDJE JE NOVA MAGIJA >>
             if available_apartments.exists():
-                # Ako ima slobodnih, prikaži ih
                 context['apartmani'] = available_apartments
             else:
-                # AKO NEMA, pokreni Plan B!
                 context['showing_conflicts'] = True
-
-                # Definiramo širi prozor za prikaz zauzeća
                 start_window = date_from - timedelta(days=15)
                 end_window = date_from + timedelta(days=15)
 
-                # Dohvaćamo SVE bookinge u tom širem prozoru
                 conflicting_bookings = Booking.objects.filter(
                     date_from__lt=end_window,
                     date_to__gt=start_window
-                ).order_by('date_from') # Sortiramo da bude preglednije
+                ).order_by('date_from')
 
                 context['conflicting_bookings'] = conflicting_bookings
                 context['search_window_start'] = start_window
@@ -162,9 +159,7 @@ class BookingAdmin(admin.ModelAdmin):
 
     def rented_api(self, request, apartman_id):
         try:
-            # bookings = Booking.objects.filter(apartman_id=apartman_id, approved=True)
-            bookings = Booking.objects.filter(apartman_id=apartman_id,)
-
+            bookings = Booking.objects.filter(apartman_id=apartman_id)
             formatted_events = []
             for booking in bookings:
                 formatted_events.append({
@@ -177,14 +172,12 @@ class BookingAdmin(admin.ModelAdmin):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
+
 @admin.register(BookingSearch)
 class BookingSearchAdmin(admin.ModelAdmin):
-
-    # Ova funkcija se izvršava kada korisnik klikne na "Search" u meniju
     def changelist_view(self, request, extra_context=None):
         try:
             url = reverse('admin:booking_search')
         except:
             url = reverse('admin:bookingengine_booking_search')
-
         return HttpResponseRedirect(url)
