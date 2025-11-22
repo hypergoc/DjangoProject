@@ -85,51 +85,40 @@ class BookingManager(models.Manager):
         return total
 
     def _calculate_services_price(self, booking):
-        """
-        Interna metoda: Računa cijenu svih dodatnih usluga (BookingService) vezanih uz booking.
-        Uključuje logiku za sezonske cijene usluga i množitelje (količina, noćenja).
-        """
-        total_services = Decimal('0.00')
-
-        # Izračun broja noćenja
+        total = Decimal('0.00')
         nights = (booking.date_to - booking.date_from).days
         if nights < 1: nights = 1
 
-        # Prolazimo kroz sve servise vezane uz ovaj booking
-        # 'services' je related_name definiran u modelu BookingService
-        for booking_service in booking.services.all():
+        for bs in booking.services.all():
+            # Dohvaćamo definiciju direktno
+            definition = bs.service
 
-            # A. ODREĐIVANJE JEDINIČNE CIJENE (Base Unit Price)
-            # Početna pretpostavka: Cijena je ona koja piše na stavci
-            unit_price = booking_service.price
+            # 1. Nađi cijenu (Sezonska ili Default)
+            unit_price = definition.default_price
 
-            # Provjera sezonskih cijena (ako je servis vezan za definiciju u katalogu)
-            if booking_service.definition:
-                # Tražimo postoji li specifična cijena za period ovog bookinga
-                # Pojednostavljenje: Gledamo cijenu na PRVI DAN bookinga
-                seasonal = booking_service.definition.seasonal_prices.filter(
-                    date_from__lte=booking.date_from,
-                    date_to__gte=booking.date_from
-                ).first()
+            seasonal = definition.seasonal_prices.filter(
+                date_from__lte=booking.date_from,
+                date_to__gte=booking.date_from
+            ).first()
 
-                if seasonal:
-                    unit_price = seasonal.price
+            if seasonal:
+                unit_price = seasonal.price
 
-            # B. IZRAČUN FAKTORA (Multipliers)
-            # 1. Količina (npr. 3 osobe, 2 psa)
-            qty_factor = booking_service.quantity
+            # 2. Množitelji (čitamo ih iz definicije!)
+            qty_factor = bs.quantity
 
-            # 2. Vrijeme (npr. 7 noćenja vs 1 fiksno čišćenje)
             time_factor = 1
-            if booking_service.is_per_night:
+            if definition.is_per_night:  # Čitamo iz definicije
                 time_factor = nights
 
-            # C. FINALNI IZRAČUN ZA OVU STAVKU
-            line_total = unit_price * qty_factor * time_factor
+            if definition.is_per_person:  # Ako imaš i ovo
+                # Ovdje pazi: bs.quantity je količina USLUGE.
+                # Ako je usluga npr. "Doručak" i quantity je 2 (za 2 osobe), to je to.
+                pass
 
-            total_services += line_total
+            total += unit_price * qty_factor * time_factor
 
-        return total_services
+        return total
 
     def is_period_available(self, apartman, date_from, date_to):
         """

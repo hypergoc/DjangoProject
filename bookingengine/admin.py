@@ -9,6 +9,18 @@ from apartman.models import Apartman
 from .models import Booking, BookingSearch
 from .forms import AvailabilityForm
 from .managers import BookingManager
+from services.models import BookingService
+
+# 1. Definiraj Inline
+class BookingServiceInline(admin.TabularInline):
+    model = BookingService
+    extra = 0
+
+    # Ažuriraj imena polja!
+    fields = ('service', 'quantity')
+
+    # OVDJE JE GREŠKA BILA:
+    autocomplete_fields = ['service']  # Bilo je 'definition'
 
 
 @admin.register(Booking)
@@ -20,7 +32,13 @@ class BookingAdmin(admin.ModelAdmin):
     date_hierarchy = 'date_from'
     list_editable = ('approved',)
     raw_id_fields = ('apartman', 'customer')
+
+    inlines = [BookingServiceInline]
+
     actions = ['approve_bookings']
+
+
+
 
     def capacity_display(self, obj):
         return f"{obj.apartman.capacity_display}"
