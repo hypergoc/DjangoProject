@@ -13,7 +13,7 @@ from .managers import BookingManager
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    list_display = ('apartman', 'customer', 'date_from', 'date_to', 'visitors_count', 'approved', 'price')
+    list_display = ('apartman', 'customer', 'date_from', 'date_to', 'capacity_display', 'visitors_count', 'approved', 'price')
     list_filter = ('approved', 'apartman')
     search_fields = ('apartman__naziv', 'customer__name', 'customer__email') # Adjust customer fields as needed
     date_hierarchy = 'date_from'
@@ -21,6 +21,11 @@ class BookingAdmin(admin.ModelAdmin):
     raw_id_fields = ('apartman', 'customer')
 
     actions = ['approve_bookings']
+
+    def capacity_display(self, obj):
+        return f"{obj.apartman.capacity_display}"
+
+    capacity_display.short_description = 'Kapacitet'
 
     def get_changeform_initial_data(self, request):
         initial = super().get_changeform_initial_data(request)
