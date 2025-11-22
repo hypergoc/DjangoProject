@@ -11,6 +11,7 @@ class Customer(models.Model):
     country = models.CharField(max_length=100, blank=True, null=True)
     vat = models.CharField(max_length=50, blank=True, null=True, verbose_name="VAT number")
     additional_data = models.TextField(blank=True, null=True)
+    discount_percent = models.DecimalField(verbose_name="Discount percent", decimal_places=2, max_digits=10, blank=True, null=True)
 
     def __str__(self):
         if self.company:
