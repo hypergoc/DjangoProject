@@ -85,40 +85,64 @@ class BookingManager(models.Manager):
         return total
 
     def _calculate_services_price(self, booking):
-        total = Decimal('0.00')
+        """
+        Računa cijenu usluga DAN PO DAN (ako su 'per_night').
+        """
+        total_services = Decimal('0.00')
+
+        # Izračun broja noćenja
         nights = (booking.date_to - booking.date_from).days
         if nights < 1: nights = 1
 
         for bs in booking.services.all():
-            # Dohvaćamo definiciju direktno
             definition = bs.service
-
-            # 1. Nađi cijenu (Sezonska ili Default)
-            unit_price = definition.default_price
-
-            seasonal = definition.seasonal_prices.filter(
-                date_from__lte=booking.date_from,
-                date_to__gte=booking.date_from
-            ).first()
-
-            if seasonal:
-                unit_price = seasonal.price
-
-            # 2. Množitelji (čitamo ih iz definicije!)
             qty_factor = bs.quantity
 
-            time_factor = 1
-            if definition.is_per_night:  # Čitamo iz definicije
-                time_factor = nights
+            # --- SLUČAJ 1: FIKSNA USLUGA (Jednokratno) ---
+            if not definition.is_per_night:
+                # Cijena je fiksna, ne ovisi o datumima (ili uzimamo s prvog dana)
+                # Ali da budemo korektni, možemo i ovdje provjeriti sezonu na dan dolaska
+                unit_price = definition.default_price
 
-            if definition.is_per_person:  # Ako imaš i ovo
-                # Ovdje pazi: bs.quantity je količina USLUGE.
-                # Ako je usluga npr. "Doručak" i quantity je 2 (za 2 osobe), to je to.
-                pass
+                seasonal = definition.seasonal_prices.filter(
+                    date_from__lte=booking.date_from,
+                    date_to__gte=booking.date_from
+                ).first()
 
-            total += unit_price * qty_factor * time_factor
+                if seasonal:
+                    unit_price = seasonal.price
 
-        return total
+                total_services += unit_price * qty_factor
+
+            # --- SLUČAJ 2: PO DANU (Per Night) - OVDJE JE PROMJENA ---
+            else:
+                service_total_for_all_nights = Decimal('0.00')
+                current_date = booking.date_from
+
+                # Vrtimo petlju kroz svaki dan boravka (osim zadnjeg)
+                while current_date < booking.date_to:
+
+                    # 1. Početna cijena je default
+                    day_price = definition.default_price
+
+                    # 2. Tražimo sezonu ZA OVAJ KONKRETAN DAN
+                    seasonal = definition.seasonal_prices.filter(
+                        date_from__lte=current_date,
+                        date_to__gte=current_date
+                    ).first()
+
+                    if seasonal:
+                        day_price = seasonal.price
+
+                    # Dodajemo cijenu tog dana u zbroj
+                    service_total_for_all_nights += day_price
+
+                    current_date += timedelta(days=1)
+
+                # Množimo sumu svih dana s količinom (npr. 2 ležaja)
+                total_services += service_total_for_all_nights * qty_factor
+
+        return total_services
 
     def is_period_available(self, apartman, date_from, date_to):
         """

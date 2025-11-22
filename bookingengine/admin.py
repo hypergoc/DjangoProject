@@ -16,11 +16,37 @@ class BookingServiceInline(admin.TabularInline):
     model = BookingService
     extra = 0
 
-    # Ažuriraj imena polja!
-    fields = ('service', 'quantity')
+    # Polja koja možemo mijenjati
+    fields = ('service', 'quantity', 'get_service_price', 'get_service_logic')
 
-    # OVDJE JE GREŠKA BILA:
-    autocomplete_fields = ['service']  # Bilo je 'definition'
+    # Polja koja su samo za informaciju (Readonly)
+    readonly_fields = ('get_service_price', 'get_service_logic')
+
+    autocomplete_fields = ['service']
+
+    # --- HELPER METODE ZA PRIKAZ ---
+
+    @admin.display(description='Cijena (Katalog)')
+    def get_service_price(self, obj):
+        # Ako je objekt spremljen i ima vezu na service
+        if obj.service:
+            return f"{obj.service.default_price} EUR"
+        return "-"
+
+    @admin.display(description='Logika Naplate')
+    def get_service_logic(self, obj):
+        if obj.service:
+            modes = []
+            if obj.service.is_per_night:
+                modes.append("x Noćenja")
+            if obj.service.is_per_person:
+                modes.append("x Osoba")
+
+            if not modes:
+                return "Fiksno (1x)"
+
+            return " + ".join(modes)
+        return "-"
 
 
 @admin.register(Booking)
