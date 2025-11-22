@@ -1,5 +1,6 @@
 from django.db import models
 from apartman.models import Apartman
+from services.models import Service
 
 class Termin(models.Model):
     apartman = models.ForeignKey(Apartman, on_delete=models.CASCADE, related_name='termini')
