@@ -32,3 +32,27 @@ class BookingService(models.Model):  # Preimenovao sam Service u BookingService 
 
         # price engine calculator
         return self.price * self.quantity * multiplier
+
+
+class ServicePrice(models.Model):
+    service = models.ForeignKey(
+        Service,
+        on_delete=models.CASCADE,
+        related_name='seasonal_prices',
+        verbose_name="Usluga"
+    )
+    date_from = models.DateField(verbose_name="Od datuma")
+    date_to = models.DateField(verbose_name="Do datuma")
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Sezonska Cijena"
+    )
+
+    def __str__(self):
+        return f"{self.service.title}: {self.price} EUR ({self.date_from} - {self.date_to})"
+
+    class Meta:
+        verbose_name = "Sezonska Cijena Usluge"
+        verbose_name_plural = "Cjenik Usluga (Sezonski)"
+        ordering = ['service', 'date_from']

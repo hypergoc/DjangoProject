@@ -1,33 +1,37 @@
 from django.contrib import admin
-from .models import BookingService, Service
+from .models import BookingService, Service, ServicePrice
 from bookingengine.models import Booking
 
 # from services.models import BookingService
 
 from .models import Service
 
+class ServicePriceInline(admin.TabularInline):
+    model = ServicePrice
+    extra = 1 # Jedan prazan red za dodavanje
+    ordering = ('date_from',)
+    # Polja koja se vide u tablici
+    fields = ('date_from', 'date_to', 'price')
 
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
     list_display = ('title', 'default_price', 'calculation_logic', 'is_global_default')
     list_filter = ('is_per_night', 'is_per_person', 'is_global_default')
     search_fields = ('title',)
-    list_editable = ('default_price', 'is_global_default')  # Brzo mijenjanje cijena direktno iz liste
 
-    # Helper metoda da lijepo ispiše logiku u tablici
+    # Helper za logiku (već smo ga imali)
     @admin.display(description='Logika naplate')
     def calculation_logic(self, obj):
         modes = []
-        if obj.is_per_night:
-            modes.append("x Noćenja")
-        if obj.is_per_person:
-            modes.append("x Osoba/Kom")
-
-        if not modes:
-            return "Fiksno (Jednokratno)"
+        if obj.is_per_night: modes.append("x Noćenja")
+        if obj.is_per_person: modes.append("x Količina")
+        if not modes: return "Fiksno"
         return " + ".join(modes)
 
-    # Malo šminke za fieldsetove da bude uredno kod unosa
+    # << OVDJE JE PROMJENA >>
+    # Dodajemo Inline tablicu u dno forme
+    inlines = [ServicePriceInline]
+
     fieldsets = (
         ("Osnovno", {
             "fields": ("title", "default_price", "is_global_default")
