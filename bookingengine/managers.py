@@ -72,12 +72,15 @@ class BookingManager(models.Manager):
             ).order_by('-id').first()
 
             if termin:
-                print(termin.pk)
+                # print(termin.pk)
                 # Pretvaramo float/decimal u Decimal za precizno računanje novca
                 total += Decimal(str(termin.value))
             else:
                 # Ako fali cijena za ijedan dan, ovo je kritična greška
-                raise ValidationError(f"Cijena za datum {current_date} nije definirana u Terminima.")
+                # todo::message za error
+                # raise ValidationError(f"Cijena za datum {current_date} nije definirana u Terminima.")
+                print(f"Cijena za datum {current_date} nije definirana u Terminima.")
+                total += Decimal(str(apartman.default_price))
 
             current_date += timedelta(days=1)
 
