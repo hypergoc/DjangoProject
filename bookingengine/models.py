@@ -13,12 +13,10 @@ class Booking(models.Model):
     approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    discount_percent = models.DecimalField(verbose_name="Discount percent", decimal_places=2, max_digits=10, blank=True, null=True)
-    discount_amount = models.DecimalField(verbose_name="Discount amount", decimal_places=2, max_digits=10, blank=True, null=True)
     price = models.DecimalField(default=0, max_digits=10, decimal_places=2, verbose_name="Ukupna cijena bookinga")
     additional_requests = models.TextField(blank=True, null=True, verbose_name="Dodatni zahtjevi (Napomene)")
-    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name="Popust %")
-    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Popust Iznos (EUR)")
+    discount_percent = models.DecimalField(blank=True, default=0, null=True,max_digits=5, decimal_places=2, verbose_name="Popust %")
+    discount_amount = models.DecimalField(blank=True, default=0, null=True, max_digits=10, decimal_places=2, verbose_name="Popust Iznos (EUR)")
 
     # Spajamo Managera
     objects = BookingManager()
@@ -30,6 +28,10 @@ class Booking(models.Model):
         # Ovdje možeš dodati: if not Booking.objects.is_period_available(...)
 
     def save(self, *args, **kwargs):
+
+        if not self.pk:
+            super().save(*args, **kwargs)
+
         # 1. AUTO-POPUST OD KLIJENTA (Samo kod kreiranja)
         if not self.pk and self.customer:
             if hasattr(self.customer, 'discount_percent') and self.customer.discount_percent > 0:

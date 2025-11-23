@@ -97,6 +97,10 @@ class BookingManager(models.Manager):
         if nights < 1: nights = 1
 
         for bs in booking.services.all():
+
+            if not bs.service:
+                continue
+
             definition = bs.service
             qty_factor = bs.quantity
 
