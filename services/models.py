@@ -21,18 +21,53 @@ class ServicePrice(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
 class BookingService(models.Model):
-    """
-    Čista vezna tablica (Link).
-    Samo kaže: Ovaj Booking ima Ovu Uslugu (toliko komada).
-    """
     booking = models.ForeignKey('bookingengine.Booking', on_delete=models.CASCADE, related_name='services')
     service = models.ForeignKey(Service, on_delete=models.CASCADE, verbose_name="Usluga") # Preimenovao sam definition u service jer je logičnije
     quantity = models.PositiveIntegerField(default=1, verbose_name="Količina")
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Cijena (Fiksirana)",
+        default=0
+    )
+
+    total_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Ukupno (Stavka)",
+        default=0,
+        editable=False # Korisnik to ne unosi, mi računamo
+    )
+
 
     def __str__(self):
         return f"{self.service.title} x {self.quantity}"
 
-    # Nema više name, price, is_per_night. Sve čitamo iz self.service!
+        # Ažuriramo save metodu da ovo izračuna
+
+    def save(self, *args, **kwargs):
+        # Prvo osiguraj da imamo jediničnu cijenu
+        if not self.price and self.service:
+            self.price = self.service.default_price
+
+        # Izračunaj total
+        # Moramo znati broj noćenja iz bookinga
+        if self.booking:
+            nights = (self.booking.date_to - self.booking.date_from).days
+            if nights < 1: nights = 1
+
+            multiplier = 1
+            if self.service.is_per_night:  # Čitamo iz definicije
+                multiplier = nights
+
+            # Ako je i po osobi/komadu
+            # Ovdje pretpostavljamo da je quantity zapravo (broj osoba * broj komada) ili samo broj komada
+            # Tvoja logika je bila qty * multiplier
+
+            self.total_price = (self.price or 0) * self.quantity * multiplier
+
+        super().save(*args, **kwargs)
+
 
 # --- SIGNAL ZA REKALKULACIJU ---
 @receiver(post_save, sender=BookingService)
