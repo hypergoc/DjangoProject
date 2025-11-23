@@ -1,5 +1,6 @@
 from django.db import models
 from company.models import Company
+from colorfield.fields import ColorField # << IMPORT
 
 class Apartman(models.Model):
     naziv = models.CharField(max_length=255)
@@ -12,6 +13,7 @@ class Apartman(models.Model):
     opis = models.TextField(blank=True, null=True)
     additional_content = models.TextField(blank=True, null=True)
     default_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Default price in cents.", default=0)
+    color = ColorField(default='#FF0000', verbose_name="Boja u kalendaru")
 
     def __str__(self):
         return f"{self.naziv} ({self.capacity_basic} + {self.capacity_additional})"

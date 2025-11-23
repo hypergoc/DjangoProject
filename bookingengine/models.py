@@ -140,3 +140,9 @@ class Payment(models.Model):
     class Meta:
         verbose_name = "Uplata"
         verbose_name_plural = "Uplate"
+
+class BookingCalendar(Booking):
+    class Meta:
+        proxy = True
+        verbose_name = 'Popunjenost (Kalendar)'
+        verbose_name_plural = 'Popunjenost (Kalendar)'

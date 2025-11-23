@@ -9,7 +9,7 @@ from datetime import timedelta, datetime
 
 from price.models import Termin
 from apartman.models import Apartman
-from .models import Booking, BookingSearch, Payment
+from .models import Booking, BookingSearch, Payment, BookingCalendar
 from .forms import AvailabilityForm
 from .managers import BookingManager
 from services.models import BookingService
@@ -200,7 +200,10 @@ class BookingAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         custom_urls = [
             path('search/', self.admin_site.admin_view(self.search_view), name='booking_search'),
+            path('master-calendar/', self.admin_site.admin_view(self.calendar_view), name='booking_master_calendar'),
             path('rented/<int:apartman_id>/', self.admin_site.admin_view(self.rented_api), name='calendar_rented'),
+            path('api/all-rented/', self.admin_site.admin_view(self.rented_api), {'apartman_id': 0},
+                 name='api_all_rented'),
             path('<int:booking_id>/pdf/', self.admin_site.admin_view(self.generate_pdf_view),
                  name='booking_generate_pdf'),
         ]
@@ -238,18 +241,79 @@ class BookingAdmin(admin.ModelAdmin):
         return response
 
     def search_view(self, request):
-        # ... Tvoja search logika (ostavio sam je skraćeno ovdje, kopiraj svoju punu ako treba) ...
-        # (Ona velika s if form.is_valid...)
-        # Zbog limita znakova ne kopiram ponovno cijelu search_view logiku,
-        # ali pretpostavljam da je imaš iz prošlog paste-a.
-        # OVO JE PLACEHOLDER ZA TVOJU SEARCH LOGIKU
         form = AvailabilityForm(request.GET or None)
-        context = dict(self.admin_site.each_context(request), form=form, results_triggered=False)
+        context = dict(
+            self.admin_site.each_context(request),
+            form=form,
+            results_triggered=False
+        )
+
         if form.is_valid():
-            # ... tvoja logika ...
             context['results_triggered'] = True
-            # ...
+
+            # 1. Izvlačenje podataka iz forme
+            # Pazi: 'apartman' u formi vraća OBJEKT Apartmana (jer je ModelChoiceField)
+            target_apartman = form.cleaned_data.get('apartman')
+            date_from = form.cleaned_data['date_from']
+            date_to = form.cleaned_data['date_to']
+            capacity = form.cleaned_data.get('capacity')
+
+            # 2. PRONALAZAK ZAUZETIH (Overlapping Bookings)
+            # Logika: Booking se preklapa ako počinje prije našeg kraja I završava nakon našeg početka.
+            overlapping_bookings_query = Booking.objects.filter(
+                date_from__lt=date_to,
+                date_to__gt=date_from,
+                approved=True  # Samo odobreni zauzimaju mjesto? Ili svi? (Tvoja odluka)
+            )
+
+            # Izvlačimo ID-eve zauzetih apartmana
+            unavailable_ids = overlapping_bookings_query.values_list('apartman_id', flat=True)
+
+            # 3. FILTRIRANJE DOSTUPNIH
+            available_apartments = Apartman.objects.exclude(id__in=unavailable_ids)
+
+            # 4. DODATNI FILTERI
+            if target_apartman:
+                # Ako je korisnik odabrao specifičan apartman, filtriramo samo njega
+                available_apartments = available_apartments.filter(id=target_apartman.id)
+
+            if capacity:
+                # Ako traži kapacitet, filtriramo po tome
+                # (Moraš imati onaj save plugin za 'capacity' u modelu Apartman!)
+                available_apartments = available_apartments.filter(capacity__gte=capacity)
+
+            # 5. PLAN A: IMAMO SLOBODNE
+            if available_apartments.exists():
+                context['apartmani'] = available_apartments
+
+            # 6. PLAN B: NEMA SLOBODNIH -> PRIKAŽI KONFLIKTE
+            else:
+                context['showing_conflicts'] = True
+
+                # Širimo prozor za +/- 15 dana
+                start_window = date_from - timedelta(days=15)
+                end_window = date_from + timedelta(days=15)
+
+                # Tražimo bookinge koji smetaju (u tom širem prozoru)
+                # Ako je tražio specifičan apartman, prikaži samo njegove konflikte
+                conflict_query = Booking.objects.filter(
+                    date_from__lt=end_window,
+                    date_to__gt=start_window
+                )
+                if target_apartman:
+                    conflict_query = conflict_query.filter(apartman=target_apartman)
+
+                context['conflicting_bookings'] = conflict_query.order_by('date_from')
+                context['search_window_start'] = start_window
+                context['search_window_end'] = end_window
+
+            # Vraćamo parametre u kontekst za linkove (Booking gumb)
+            context['date_from'] = date_from
+            context['date_to'] = date_to
+            context['capacity'] = capacity
+
         return render(request, 'admin/bookingengine/search.html', context)
+
 
     def changelist_view(self, request, extra_context=None):
         search_form = AvailabilityForm(request.GET or None)
@@ -257,28 +321,72 @@ class BookingAdmin(admin.ModelAdmin):
         extra_context['search_form'] = search_form
         extra_context['search_results_triggered'] = False
         if search_form.is_valid():
-            # ... tvoja logika za changelist ...
             extra_context['search_results_triggered'] = True
-            # ...
         return super().changelist_view(request, extra_context=extra_context)
 
-    def rented_api(self, request, apartman_id):
+    def is_dark(self, hex_color):
+        """
+        Vraća True ako je boja tamna (pa tekst treba biti bijeli).
+        """
+        if not hex_color: return False
+        hex_color = hex_color.lstrip('#')
+
+        # Pretvaramo HEX u RGB
         try:
-            bookings = Booking.objects.filter(apartman_id=apartman_id)
+            r = int(hex_color[0:2], 16)
+            g = int(hex_color[2:4], 16)
+            b = int(hex_color[4:6], 16)
+
+            # Formula za luminanciju (standardna)
+            # Y = 0.299 R + 0.587 G + 0.114 B
+            yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000
+
+            return yiq < 128  # Ako je ispod 128, tamno je
+        except:
+            return False
+
+    def rented_api(self, request, apartman_id=0):
+        # Pazi: apartman_id=0 znači "Daj sve"
+        try:
+            if apartman_id and apartman_id > 0:
+                bookings = Booking.objects.filter(apartman_id=apartman_id)
+            else:
+                # Ako nismo tražili specifičan apartman, daj sve (ili filtriraj po nečem drugom)
+                bookings = Booking.objects.all()
+
             formatted_events = []
+
             for booking in bookings:
+                # Sastavljamo naslov: [App] Ime (Cijena)
+                title = f"[{booking.apartman.naziv}] {booking.customer.name} ({booking.price}€)"
+
                 formatted_events.append({
+                    'title': title,  # Ovo se vidi na kalendaru
                     'start': booking.date_from,
-                    'end': booking.date_to,
-                    'color': '#dc3545',
-                    'display': 'background'
+                    'end': booking.date_to + timedelta(days=1),  # FullCalendar treba +1 dan za vizualni kraj
+                    'color': booking.apartman.color,
+                    'textColor': '#FFFFFF' if self.is_dark(booking.apartman.color) else '#000000', # Opcionalno: pametni
+                    # Dodatni podaci za tooltip (ako ćemo raditi)
+                    'extendedProps': {
+                        'price': booking.price,
+                        'customer': str(booking.customer)
+                    },
+                    # Link na edit bookinga kad klikneš!
+                    'url': reverse('admin:bookingengine_booking_change', args=[booking.pk])
                 })
+
             return JsonResponse(formatted_events, safe=False)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
     # change_form_template = 'admin/apartman/apartman/change_form.html'
 
+    def calendar_view(self, request):
+        context = dict(
+            self.admin_site.each_context(request),
+            title="Glavni Kalendar",
+        )
+        return render(request, 'admin/bookingengine/calendar_full.html', context)
 
 @admin.register(BookingSearch)
 class BookingSearchAdmin(admin.ModelAdmin):
@@ -288,3 +396,9 @@ class BookingSearchAdmin(admin.ModelAdmin):
         except:
             url = reverse('admin:bookingengine_booking_search')
         return HttpResponseRedirect(url)
+
+@admin.register(BookingCalendar)
+class BookingCalendarAdmin(admin.ModelAdmin):
+    def changelist_view(self, request, extra_context=None):
+        # Kad netko klikne na "Popunjenost" u izborniku, prebaci ga na naš kalendar view
+        return HttpResponseRedirect(reverse('admin:booking_master_calendar'))
