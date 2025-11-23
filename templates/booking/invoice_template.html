@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm; /* Malo manje margine */
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 11px; /* Malo manji font da sve stane */
+            color: #333;
+        }
+
+        /* TABLICA ZA LAYOUT ZAGLAVLJA (Stabilno!) */
+        .header-table { width: 100%; margin-bottom: 30px; border: none; }
+        .header-table td { border: none; vertical-align: top; padding: 0; }
+
+        h1 { color: #417690; font-size: 16px; margin: 0 0 2px 0; }
+        h2 { font-size: 12px; color: #777; margin: 0 0 5px 0; text-transform: uppercase; border-bottom: 1px solid #ddd; padding-bottom: 2px; width: 80%; }
+        p { margin: 2px 0; line-height: 1.3; }
+
+        .invoice-box {
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #417690;
+            background-color: #f0f8ff;
+        }
+        .invoice-title { font-size: 18px; font-weight: bold; color: #417690; }
+
+        /* GLAVNA TABLICA USLUGA */
+        .services-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .services-table th { background-color: #f2f2f2; border-bottom: 1px solid #999; padding: 8px; text-align: left; font-size: 10px; text-transform: uppercase; }
+        .services-table td { border-bottom: 1px solid #eee; padding: 8px; vertical-align: top; }
+        .num { text-align: right; white-space: nowrap; }
+        .center { text-align: center; }
+
+        /* TOTALI - Desno poravnato */
+        .totals-container { width: 100%; margin-top: 20px; }
+        .totals-table { float: right; width: 40%; border-collapse: collapse; }
+        .totals-table td { padding: 5px; border: none; }
+        .grand-total td { border-top: 2px solid #417690; font-weight: bold; font-size: 14px; color: #417690; }
+        .due td { color: #d32f2f; font-weight: bold; font-size: 12px; }
+
+        /* FOOTER - Fiksiran na dnu */
+        .footer { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; font-size: 9px; color: #aaa; border-top: 1px solid #eee; padding-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <!-- NASLOV (U kutiji) -->
+    <div class="invoice-box">
+        <div class="invoice-title">PONUDA / RAČUN {{ booking.id }}</div>
+        <p>Datum: {{ booking.created_at|date:"d.m.Y." }}</p>
+    </div>
+
+    <!-- ZAGLAVLJE (TABLICA ZA LAYOUT) -->
+    <table class="header-table">
+        <tr>
+            <!-- LIJEVO: Izdavatelj -->
+            <td style="width: 50%;">
+                <h2>Izdavatelj</h2>
+                <h1>{{ company.name }}</h1>
+                <p>{{ company.address }}</p>
+                <p>{{ company.city }}, {{ company.country }}</p>
+                <p>OIB: {{ company.vat_number }}</p>
+                <p>Email: {{ company.email }}</p>
+            </td>
+            <!-- DESNO: Kupac -->
+            <td style="width: 50%; text-align: right;">
+                <h2 style="float: right;">Kupac</h2> <div style="clear:both;"></div>
+                <h1>{{ customer.name }} {{ customer.surname }}</h1>
+                {% if customer.company %}<p><strong>{{ customer.company }}</strong></p>{% endif %}
+                <p>{{ customer.address }}</p>
+                <p>{{ customer.city }}, {{ customer.country }}</p>
+                {% if customer.vat %}<p>OIB: {{ customer.vat }}</p>{% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <!-- STAVKE -->
+    <table class="services-table">
+        <thead>
+            <tr>
+                <th style="width: 50%;">Opis</th>
+                <th class="center" style="width: 10%;">Kol.</th>
+                <th class="num" style="width: 20%;">Cijena</th>
+                <th class="num" style="width: 20%;">Ukupno</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- SMJEŠTAJ -->
+            <tr>
+                <td>
+                    <strong>Smještaj: {{ booking.apartman.naziv }}</strong><br>
+                    <span style="color: #666; font-size: 10px;">
+                        {{ booking.date_from|date:"d.m.Y." }} - {{ booking.date_to|date:"d.m.Y." }}
+                        ({{ booking.visitors_count }} osoba)
+                    </span>
+                </td>
+                <td class="center">1</td>
+                <td class="num">...</td> <!-- Ovdje ide Base Price ako ga imaš -->
+                <td class="num">...</td> <!-- Ovdje ide Base Price Total -->
+            </tr>
+
+            <!-- DODATNE USLUGE -->
+            {% for service in services %}
+                {% if service.name %}
+                <tr>
+                    <td>{{ service.name }}</td>
+                    <td class="center">{{ service.quantity }}</td>
+                    <td class="num">{{ service.price }} €</td>
+                    <td class="num">-</td> <!-- Treba izračun -->
+                </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- TOTALI -->
+    <div class="totals-container">
+        <table class="totals-table">
+            {% if booking.discount_amount > 0 %}
+            <tr>
+                <td class="num">Popust:</td>
+                <td class="num">- {{ booking.discount_amount }} €</td>
+            </tr>
+            {% endif %}
+
+            <tr class="grand-total">
+                <td class="num">UKUPNO:</td>
+                <td class="num">{{ booking.price }} €</td>
+            </tr>
+
+            <!-- Hack za plaćeno (Price - Remaining) -->
+            {% if booking.price > booking.remaining_balance %}
+            <tr>
+                <td class="num" style="color: #666;">Uplaćeno:</td>
+                <td class="num" style="color: #666;">
+                    (Dio plaćen) <!-- Ovdje trebaš pravu varijablu paid_amount -->
+                </td>
+            </tr>
+            {% endif %}
+
+            <tr class="due">
+                <td class="num">ZA PLATITI:</td>
+                <td class="num">{{ booking.remaining_balance }} €</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <p>Hvala na povjerenju! | Generirano sustavom TheTineLine</p>
+    </div>
+
+</body>
+</html>

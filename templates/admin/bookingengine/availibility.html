@@ -1,0 +1,70 @@
+{% extends "admin/base_site.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<form method="get" action="">
+    {{ form.as_p }}
+    <button type="submit">Pretraži</button>
+</form>
+
+<hr>
+
+{% if results_triggered %}
+
+    {% if apartmani %}
+        <h2>Dostupni Apartmani:</h2>
+        <ul>
+        {% for apartman in apartmani %}
+            <li>
+                <a href="{% url 'admin:bookingengine_booking_add' %}?apartman={{ apartman.id }}&date_from={{ form.cleaned_data.date_from|date:'Y-m-d' }}&date_to={{ form.cleaned_data.date_to|date:'Y-m-d' }}&visitors_count={{ form.cleaned_data.capacity }}">
+                    {{ apartman.naziv }}
+                </a> (Kapacitet: {{ apartman.capacity }})
+            </li>
+        {% endfor %}
+        </ul>
+
+    {% elif showing_conflicts %}
+        <div id="calendar" style="max-width: 900px; margin: 20px auto;"></div>
+
+        <!-- Učitavamo FullCalendar skriptu -->
+        <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var calendarEl = document.getElementById('calendar');
+                const apartmanId = 2;
+
+
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    events: "{% url 'admin:calendar_rented' 2 %}",
+                    selectable: true,
+                    editable: true,
+
+                    select: function(info) {
+                        document.getElementById('id_date_from').value = info.startStr;
+                        var endDate = new Date(info.endStr);
+                        endDate.setDate(endDate.getDate() - 1);
+                        var correctedEndStr = endDate.toISOString().slice(0, 10);
+                        document.getElementById('id_date_to').value = correctedEndStr;
+
+                        document.getElementById('availability-form').submit();
+                    }
+
+
+                });
+
+                calendar.render();
+
+
+
+            })
+        </script>
+    {% else %}
+        <p>Nema dostupnih apartmana za tražene kriterije.</p>
+    {% endif %}
+
+{% endif %}
+
+{% endblock %}

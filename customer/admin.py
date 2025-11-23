@@ -8,7 +8,7 @@ class CustomerAdmin(admin.ModelAdmin):
     search_fields = ('company', 'name', 'surname', 'email', 'vat')
     fieldsets = (
         (None, {
-            'fields': ('company', 'name', 'surname', 'email', 'vat')
+            'fields': ('company', 'name', 'surname', 'email', 'vat', 'discount_percent')
         }),
         ('Contact Information', {
             'fields': ('phone', 'address', 'city', 'country')
