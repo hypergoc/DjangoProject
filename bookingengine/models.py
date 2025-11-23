@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from apartman.models import Apartman
 from customer.models import Customer
 from .managers import BookingManager
+from django.contrib import messages
 
 class Booking(models.Model):
     apartman = models.ForeignKey(Apartman, on_delete=models.CASCADE, related_name='bookings')
@@ -22,6 +23,34 @@ class Booking(models.Model):
     objects = BookingManager()
 
     def clean(self):
+        errors = {}
+
+        if not self.apartman_id:  # Pazi: koristimo _id jer self.apartman može baciti grešku ako je None
+            errors['apartman'] = "Molim odaberite apartman."
+
+        if not self.customer_id:
+            errors['customer'] = "Molim odaberite klijenta."
+
+        if not self.date_from:
+            errors['date_from'] = "Datum dolaska je obavezan."
+
+        if not self.date_to:
+            errors['date_to'] = "Datum odlaska je obavezan."
+
+        if self.date_from and self.date_to:
+            if self.date_from >= self.date_to:
+                errors['date_to'] = "Datum odlaska mora biti nakon datuma dolaska."
+
+        if self.visitors_count < 1:
+            errors['visitors_count'] = "Broj gostiju mora biti barem 1."
+
+        # Ako imamo osnovne greške, bacamo ih ODMAH.
+        if errors:
+            raise ValidationError(errors)
+        # try:
+        #     Booking.objects.calculate_total_price(self)  # Samo provjera
+        # except ValidationError as e:
+        #     raise ValidationError(f"Ne mogu spremiti: {e.message}")  # Ovo Admin lijepo prikaže
         # Validacija prije save-a. Ovdje provjeravamo je li period slobodan.
         # (Osim ako je ovo postojeći booking koji nije mijenjao datume, ali to je detalj)
         super().clean()
@@ -33,9 +62,10 @@ class Booking(models.Model):
             super().save(*args, **kwargs)
 
         # 1. AUTO-POPUST OD KLIJENTA (Samo kod kreiranja)
-        if not self.pk and self.customer:
-            if hasattr(self.customer, 'discount_percent') and self.customer.discount_percent > 0:
-                self.discount_percent = self.customer.discount_percent
+        if self.customer and (self.discount_percent is None or self.discount_percent == 0):
+            customer_discount = getattr(self.customer, 'discount_percent', 0)
+            if customer_discount > 0:
+                self.discount_percent = customer_discount
 
         # 2. IZRAČUN BRUTO CIJENE (Najam + Usluge)
         # Uvijek računamo punu cijenu iz Managera
