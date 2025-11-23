@@ -29,7 +29,6 @@ class BookingManager(models.Manager):
 
         # 1. OSNOVNA CIJENA (NAJAM APARTMANA PO NOĆENJU)
         try:
-            print('base price')
             base_price = self._calculate_base_stay_price(
                 booking_instance.apartman,
                 booking_instance.date_from,

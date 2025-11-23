@@ -32,36 +32,38 @@ class Booking(models.Model):
     def save(self, *args, **kwargs):
         # 1. AUTO-POPUST OD KLIJENTA (Samo kod kreiranja)
         if not self.pk and self.customer:
-            # Provjeravamo ima li customer polje 'discount_percent' i je li > 0
             if hasattr(self.customer, 'discount_percent') and self.customer.discount_percent > 0:
                 self.discount_percent = self.customer.discount_percent
 
         # 2. IZRAČUN BRUTO CIJENE (Najam + Usluge)
-        # Zovemo Managera da nam da "punu cijenu" prije popusta.
-        # Pazi: save=False jer ćemo spremiti na kraju metode.
-        # Moramo imati datume da bi ovo radilo.
+        # Uvijek računamo punu cijenu iz Managera
         if self.date_from and self.date_to:
             try:
                 gross_price = Booking.objects.calculate_total_price(self, save=False)
-                self.price = gross_price
+
+                # Počinjemo od pune cijene
+                final_price = gross_price
+
+                # 3. PRIMJENA POPUSTA (STACKING / KUMULATIVNO)
+
+                # A) Popust u postotku
+                if self.discount_percent > 0:
+                    percent_value = (gross_price * self.discount_percent) / 100
+                    final_price -= percent_value
+
+                # B) Popust u iznosu (Fiksni)
+                # Sada ovo tretiramo kao DODATNI fiksni popust koji si ti upisao
+                if self.discount_amount > 0:
+                    final_price -= self.discount_amount
+
+                # Osigurač (da ne moramo mi njima platiti)
+                if final_price < 0:
+                    final_price = 0
+
+                self.price = final_price
+
             except ValidationError as e:
-                # Ako fali cijena u terminima, propuštamo grešku da je Admin uhvati
                 raise e
-
-        # 3. PRIMJENA POPUSTA
-        # Logika: Percent ima prednost. Ako nema percent, gledamo fiksni iznos.
-        if self.discount_percent > 0:
-            discount_value = (self.price * self.discount_percent) / 100
-            self.discount_amount = discount_value  # Zapišemo iznos popusta
-            self.price -= discount_value  # Umanjimo ukupnu cijenu
-
-        elif self.discount_amount > 0:
-            # Ako je unesen samo fiksni iznos popusta
-            self.price -= self.discount_amount
-
-        # Osigurač da cijena ne ode u minus
-        if self.price < 0:
-            self.price = 0
 
         # 4. FINALNO SPREMANJE
         super(Booking, self).save(*args, **kwargs)

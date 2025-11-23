@@ -1,3 +1,5 @@
+# booking/admin.py
+
 from django.contrib import admin
 from django.urls import path, reverse
 from django.http import HttpResponseRedirect
@@ -6,15 +8,18 @@ from django.http import JsonResponse
 from datetime import timedelta, datetime
 from price.models import Termin
 from apartman.models import Apartman
-from .models import Booking, BookingSearch, Payment # << Pazi da je Payment importan!
+from .models import Booking, BookingSearch, Payment  # << Pazi da je Payment importan!
 from .forms import AvailabilityForm
 from .managers import BookingManager
 from services.models import BookingService
+from django.utils.html import format_html
+
 
 # --- TVOJ POSTOJEĆI INLINE ---
 class BookingServiceInline(admin.TabularInline):
     model = BookingService
     extra = 0
+    # ISPRAVAK: Samo polja, bez fieldseta
     fields = ('service', 'quantity', 'get_service_price', 'get_service_logic')
     readonly_fields = ('get_service_price', 'get_service_logic')
     autocomplete_fields = ['service']
@@ -39,17 +44,19 @@ class BookingServiceInline(admin.TabularInline):
             return " + ".join(modes)
         return "-"
 
+
 # --- NOVI INLINE ZA UPLATE ---
 class PaymentInline(admin.TabularInline):
     model = Payment
     extra = 0
-    classes = ('collapse',) # Da bude uredno skupljeno
+    classes = ('collapse',)  # Da bude uredno skupljeno
+
 
 # --- TVOJ GLAVNI ADMIN ---
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
     list_display = ('apartman', 'customer', 'date_from', 'date_to', 'capacity_display', 'visitors_count', 'approved',
-                    'price')
+                    'price', 'remaining_balance_display')  # Dodao remaining_balance_display
     list_filter = ('approved', 'apartman')
     search_fields = ('apartman__naziv', 'customer__name', 'customer__email')
     date_hierarchy = 'date_from'
@@ -61,11 +68,79 @@ class BookingAdmin(admin.ModelAdmin):
 
     actions = ['approve_bookings']
 
+    # ISPRAVAK: Fieldsets su ovdje, ne u inlineu
+    fieldsets = (
+        ("Osnovno", {
+            "fields": ("apartman", "customer", "date_from", "date_to", "visitors_count", "price", "approved")
+        }),
+
+        # << NOVI TOGGLE: PODACI O KUPCU (READONLY) >>
+        ("Podaci o Kupcu (Dossier)", {
+            "classes": ("collapse",),
+            "fields": ("customer_info_display",)
+        }),
+
+        ("Financije & Popusti", {
+            "classes": ("collapse",),
+            "fields": ("discount_percent", "discount_amount", "remaining_balance_display")
+        }),
+        ("Dodatno (Napomene)", {
+            "classes": ("collapse",),
+            "fields": ("additional_requests",)
+        }),
+    )
+
+    # Dodajemo u readonly
+    readonly_fields = ('remaining_balance_display', 'capacity_display', 'customer_info_display')
+
+    # METODA ZA PRIKAZ KUPCA
+    def customer_info_display(self, obj):
+        if not obj.customer:
+            return "-"
+
+        c = obj.customer
+        # Formatiramo lijepi HTML blok s podacima
+        # Koristimo format_html radi sigurnosti
+        return format_html(
+            """
+            <div style="line-height: 1.6;">
+                <strong>Firma:</strong> {} <br>
+                <strong>Ime i Prezime:</strong> {} {} <br>
+                <strong>Email:</strong> <a href="mailto:{}">{}</a> <br>
+                <strong>Telefon:</strong> {} <br>
+                <strong>Adresa:</strong> {}, {}, {} <br>
+                <strong>OIB (VAT):</strong> {} <br>
+                <strong>Popust (Default):</strong> {}% <br>
+                <hr style="margin: 5px 0; border: 0; border-top: 1px solid #eee;">
+                <strong>Napomena:</strong> <br> 
+                <span style="color: #666;">{}</span>
+            </div>
+            """,
+            c.company or "-",
+            c.name, c.surname,
+            c.email, c.email,
+            c.phone or "-",
+            c.address or "", c.city or "", c.country or "",
+            c.vat or "-",
+            c.discount_percent or "0",
+            c.additional_data or "-"
+        )
+
+    customer_info_display.short_description = "Detalji Klijenta"
 
     def capacity_display(self, obj):
-        return f"{obj.apartman.capacity_display}"
+        return f"{obj.apartman.capacity_display}" if obj.apartman else "-"
 
     capacity_display.short_description = 'Kapacitet'
+
+    def remaining_balance_display(self, obj):
+        if obj.pk:
+            return f"{obj.remaining_balance} EUR"
+        return "-"
+
+    remaining_balance_display.short_description = "Preostalo Dugovanje"
+
+
 
     # ... (ostatak tvog koda je identičan onom što si poslao) ...
     def get_changeform_initial_data(self, request):
