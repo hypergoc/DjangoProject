@@ -211,12 +211,21 @@ class BookingAdmin(admin.ModelAdmin):
             return HttpResponse("WeasyPrint nije instaliran (pip install weasyprint).", status=500)
 
         booking = Booking.objects.get(pk=booking_id)
+        base_price = Booking.objects._calculate_base_stay_price(
+            booking.apartman,
+            booking.date_from,
+            booking.date_to
+        )
+
         context = {
             'booking': booking,
             'company': booking.apartman.company,
             'customer': booking.customer,
             'services': booking.services.all(),
             'payments': booking.payments.all(),
+
+            'base_price': base_price,  # Šaljemo u template!
+
             'total': booking.price,
             'paid': booking.remaining_balance,
         }
