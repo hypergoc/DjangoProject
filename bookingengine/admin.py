@@ -83,7 +83,7 @@ class BookingAdmin(admin.ModelAdmin):
         }),
         ("Financije & Popusti", {
             "classes": ("collapse",),
-            "fields": ("discount_percent", "discount_amount", "remaining_balance_display")
+            "fields": ("discount_percent", "discount_percent_amount", "discount_amount", "remaining_balance_display")
         }),
         ("Dodatno (Napomene)", {
             "classes": ("collapse",),
@@ -92,7 +92,7 @@ class BookingAdmin(admin.ModelAdmin):
     )
 
     readonly_fields = ('remaining_balance_display', 'print_invoice_button', 'capacity_display', 'customer_info_display',
-                       'get_booking_price')
+                       'get_booking_price', "discount_percent_amount")
 
     # --- HELPERI ---
 
@@ -221,13 +221,14 @@ class BookingAdmin(admin.ModelAdmin):
             'booking': booking,
             'company': booking.apartman.company,
             'customer': booking.customer,
-            'services': booking.services.all(),
+            'services': booking.services.select_related('service').all(),
             'payments': booking.payments.all(),
-
+            'discount_percent_amount': round(booking.discount_percent * base_price / 100, 2),
             'base_price': base_price,  # Šaljemo u template!
 
             'total': booking.price,
             'paid': booking.remaining_balance,
+            'paid_list': booking.payments.all()
         }
 
         html_string = render_to_string('booking/invoice_template.html', context)

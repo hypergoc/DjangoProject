@@ -18,6 +18,7 @@ class Booking(models.Model):
     additional_requests = models.TextField(blank=True, null=True, verbose_name="Dodatni zahtjevi (Napomene)")
     discount_percent = models.DecimalField(blank=True, default=0, null=True,max_digits=5, decimal_places=2, verbose_name="Popust %")
     discount_amount = models.DecimalField(blank=True, default=0, null=True, max_digits=10, decimal_places=2, verbose_name="Popust Iznos (EUR)")
+    discount_percent_amount = models.DecimalField(blank=True, default=0, null=True, max_digits=10, decimal_places=2, verbose_name="Popust Iznos (EUR)")
 
     # Spajamo Managera
     objects = BookingManager()
@@ -81,12 +82,15 @@ class Booking(models.Model):
                 # A) Popust u postotku
                 if self.discount_percent > 0:
                     percent_value = (gross_price * self.discount_percent) / 100
+                    self.discount_percent_amount = percent_value
                     final_price -= percent_value
 
                 # B) Popust u iznosu (Fiksni)
                 # Sada ovo tretiramo kao DODATNI fiksni popust koji si ti upisao
                 if self.discount_amount > 0:
                     final_price -= self.discount_amount
+
+
 
                 # Osigurač (da ne moramo mi njima platiti)
                 if final_price < 0:
