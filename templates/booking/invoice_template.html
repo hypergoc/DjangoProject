@@ -101,21 +101,21 @@
                     </span>
                 </td>
                 <td class="center">1</td>
-                <td class="num">...</td> <!-- Ovdje ide Base Price ako ga imaš -->
-                <td class="num">...</td> <!-- Ovdje ide Base Price Total -->
+                <td class="num">{{ base_price }} €</td>
+                <td class="num">{{ base_price }} €</td>
             </tr>
 
             <!-- DODATNE USLUGE -->
-            {% for service in services %}
-                {% if service.name %}
-                <tr>
-                    <td>{{ service.name }}</td>
-                    <td class="center">{{ service.quantity }}</td>
-                    <td class="num">{{ service.price }} €</td>
-                    <td class="num">-</td> <!-- Treba izračun -->
-                </tr>
-                {% endif %}
-            {% endfor %}
+                {% for item in services %}
+                    <tr>
+                        <!-- OVDJE: item.service.title umjesto item.name -->
+                        <td>{{ item.service.title }}</td>
+
+                        <td class="center">{{ item.quantity }}</td>
+                        <td class="num">{{ item.price }} €</td>
+                        <td class="num">{{ item.total_price }} €</td>
+                    </tr>
+                {% endfor %}
         </tbody>
     </table>
 
@@ -126,6 +126,12 @@
             <tr>
                 <td class="num">Popust:</td>
                 <td class="num">- {{ booking.discount_amount }} €</td>
+            </tr>
+            {% endif %}
+            {% if booking.discount_percent > 0 %}
+            <tr>
+                <td class="num">Popust ({{ booking.discount_percent }}%):</td>
+                <td class="num">- {{ booking.discount_percent_amount }} €</td>
             </tr>
             {% endif %}
 
@@ -143,7 +149,14 @@
                 </td>
             </tr>
             {% endif %}
-
+            {% if paid_list %}
+            {% for payment in paid_list %}
+            <tr>
+                <td class="num">{{ payment.payment_date}}</td>
+                <td class="num">{{ payment.amount }} €</td>
+            </tr>
+            {% endfor %}
+            {% endif %}
             <tr class="due">
                 <td class="num">ZA PLATITI:</td>
                 <td class="num">{{ booking.remaining_balance }} €</td>
