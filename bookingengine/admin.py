@@ -6,29 +6,22 @@ from django.http import JsonResponse
 from datetime import timedelta, datetime
 from price.models import Termin
 from apartman.models import Apartman
-from .models import Booking, BookingSearch
+from .models import Booking, BookingSearch, Payment # << Pazi da je Payment importan!
 from .forms import AvailabilityForm
 from .managers import BookingManager
 from services.models import BookingService
 
-# 1. Definiraj Inline
+# --- TVOJ POSTOJEĆI INLINE ---
 class BookingServiceInline(admin.TabularInline):
     model = BookingService
     extra = 0
-
-    # Polja koja možemo mijenjati
     fields = ('service', 'quantity', 'get_service_price', 'get_service_logic')
-
-    # Polja koja su samo za informaciju (Readonly)
     readonly_fields = ('get_service_price', 'get_service_logic')
-
     autocomplete_fields = ['service']
-
-    # --- HELPER METODE ZA PRIKAZ ---
+    classes = ('collapse',)
 
     @admin.display(description='Cijena (Katalog)')
     def get_service_price(self, obj):
-        # Ako je objekt spremljen i ima vezu na service
         if obj.service:
             return f"{obj.service.default_price} EUR"
         return "-"
@@ -41,14 +34,18 @@ class BookingServiceInline(admin.TabularInline):
                 modes.append("x Noćenja")
             if obj.service.is_per_person:
                 modes.append("x Osoba")
-
             if not modes:
                 return "Fiksno (1x)"
-
             return " + ".join(modes)
         return "-"
 
+# --- NOVI INLINE ZA UPLATE ---
+class PaymentInline(admin.TabularInline):
+    model = Payment
+    extra = 0
+    classes = ('collapse',) # Da bude uredno skupljeno
 
+# --- TVOJ GLAVNI ADMIN ---
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
     list_display = ('apartman', 'customer', 'date_from', 'date_to', 'capacity_display', 'visitors_count', 'approved',
@@ -59,11 +56,10 @@ class BookingAdmin(admin.ModelAdmin):
     list_editable = ('approved',)
     raw_id_fields = ('apartman', 'customer')
 
-    inlines = [BookingServiceInline]
+    # << OVDJE JE PROMJENA: DODAN PaymentInline >>
+    inlines = [BookingServiceInline, PaymentInline]
 
     actions = ['approve_bookings']
-
-
 
 
     def capacity_display(self, obj):
@@ -71,6 +67,7 @@ class BookingAdmin(admin.ModelAdmin):
 
     capacity_display.short_description = 'Kapacitet'
 
+    # ... (ostatak tvog koda je identičan onom što si poslao) ...
     def get_changeform_initial_data(self, request):
         initial = super().get_changeform_initial_data(request)
         apartman_id = request.GET.get('apartman')
@@ -90,10 +87,6 @@ class BookingAdmin(admin.ModelAdmin):
                 date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
                 visitors_count = int(visitors_count_str) if visitors_count_str else 1
 
-                # Ovdje pozivamo preview metodu jer nemamo instancu bookinga
-                # Provjeri da li je imas u Manageru, ako ne, koristi calculate_base_stay_price
-                # ili dodaj logiku ovdje privremeno.
-                # Ovdje koristim pretpostavku da si dodao calculate_total_price_preview
                 price = Booking.objects.calculate_total_price_preview(
                     apartman, date_from, date_to, visitors_count
                 )
