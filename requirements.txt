@@ -18,6 +18,7 @@ Django==5.2.4
 django-admin-adminlte==1.0.14
 django-admin-easy==0.8.0
 django-admin-soft-dashboard==1.0.22
+django-colorfield==0.14.0
 django-dbbackup==4.2.1
 django-debug-toolbar==4.4.6
 django-jazzmin==3.0.1
