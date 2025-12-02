@@ -17,15 +17,16 @@ class PostCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'published', 'date_of_publishing', 'created_at')
+    list_display = ('title', 'slug', 'published', 'date_of_publishing', 'created_at')
     list_filter = ('published', 'categories', 'date_of_publishing')
     search_fields = ('title', 'subtitle', 'content')
     filter_horizontal = ('categories',)
     inlines = [PostImageInline]
     date_hierarchy = 'date_of_publishing'
+    prepopulated_fields = {'slug': ('title',)}
     fieldsets = (
         (None, {
-            'fields': ('title', 'subtitle', 'content', 'categories')
+            'fields': ('title', 'slug', 'subtitle', 'content', 'categories')
         }),
         ('Publishing Options', {
             'fields': ('published', 'date_of_publishing')

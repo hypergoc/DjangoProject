@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('gallery/', include('gallery.urls')),
     path('imagen/', include('imagen.urls')),
+    path('', include('cms.urls')),
     # path('gemini/', include('gemini.urls')),
 ]
 

@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'bookingengine',
     'services',
     'colorfield',
+    'cms',
 
 ]
 
